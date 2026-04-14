@@ -21,3 +21,5 @@
 ## GeminiやGPTに投げる方法
 1. game-templete.htmlを入力する
 2. 所望の仕様のゲームのプロンプトを送信する
+3. htmlファイルはgamesに、ゲームで使用するアセットはassetに格納する
+4. index.htmlはgameフォルダのhtmlをゲームとして認識する。
