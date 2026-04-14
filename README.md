@@ -8,7 +8,12 @@
 
 ---
 ### ゲームを選択する
-<img width="562" height="277" alt="image" src="https://github.com/user-attachments/assets/e15f83d6-4e7f-4c01-807b-cc5b60bcd8cc" />
+
+
+https://github.com/user-attachments/assets/f44582af-137e-4306-af4b-946283200c92
+
+
+
 
 ---
 ## 使い方（ハードウェアの設定）
