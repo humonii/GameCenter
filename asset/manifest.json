@@ -1,0 +1,79 @@
+[
+  {
+    "id": "grade1",
+    "label": "1年生",
+    "desc": "ひらがな・かず・せいかつ",
+    "file": "grade1.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "grade2",
+    "label": "2年生",
+    "desc": "くり上がり・かけ算・町たんけん",
+    "file": "grade2.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "grade3",
+    "label": "3年生",
+    "desc": "理科・社会・わり算",
+    "file": "grade3.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "grade4",
+    "label": "4年生",
+    "desc": "都道府県・面積・天気",
+    "file": "grade4.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "grade5",
+    "label": "5年生",
+    "desc": "割合・地理・植物の成長",
+    "file": "grade5.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "grade6",
+    "label": "6年生",
+    "desc": "歴史・比例・てこ",
+    "file": "grade6.csv",
+    "group": "学年別"
+  },
+  {
+    "id": "kanji",
+    "label": "漢字の読み方",
+    "desc": "読みの基礎チェック",
+    "file": "kanji_reading.csv",
+    "group": "シリーズ"
+  },
+  {
+    "id": "science",
+    "label": "理科シリーズ",
+    "desc": "自然・生き物・電気",
+    "file": "science.csv",
+    "group": "シリーズ"
+  },
+  {
+    "id": "social",
+    "label": "社会シリーズ",
+    "desc": "地図・くらし・産業",
+    "file": "social_studies.csv",
+    "group": "シリーズ"
+  },
+  {
+    "id": "history",
+    "label": "歴史シリーズ",
+    "desc": "時代の流れ・人物",
+    "file": "history.csv",
+    "group": "シリーズ"
+  },
+  {
+    "id": "english",
+    "label": "英単語 2たく",
+    "desc": "英語 / 日本語",
+    "file": "english_words.csv",
+    "group": "シリーズ"
+  }
+]

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Feeling Game Launcher</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --panel:#ffffff;
+      --line:#d9e1ee;
+      --ink:#1b2436;
+      --sub:#6b778e;
+      --accent:#23457a;
+      --shadow:0 22px 50px rgba(22,35,61,.10);
+      --soft-shadow:0 12px 28px rgba(22,35,61,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;background:linear-gradient(180deg,#fbfcff 0%,#f4f6fb 100%);color:var(--ink)}
+    body{padding:clamp(10px,1.8vw,18px);min-height:100dvh;display:grid;place-items:center;overflow:hidden}
+    .launcher{width:min(100%,1500px);height:min(calc(100dvh - 24px),860px);display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px}
+    .frame{background:linear-gradient(180deg,#fdfdff,#f4f7fb);border:1px solid var(--line);border-radius:34px;padding:18px;box-shadow:var(--shadow);min-height:0}
+    .viewport{position:relative;height:100%;border-radius:28px;border:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#f8f9fd);overflow:hidden;display:grid;grid-template-rows:minmax(0,1fr)}
+    .viewport::after{content:"";position:absolute;left:50%;bottom:10%;width:min(780px,78%);height:54px;transform:translateX(-50%);background:radial-gradient(ellipse at center, rgba(31,49,88,.16), rgba(31,49,88,0) 72%);filter:blur(12px);pointer-events:none}
+    .carousel-area{position:relative;min-height:0;height:100%;display:grid;place-items:center;padding:24px 24px 30px}
+    .carousel-stage{position:relative;width:100%;height:min(100%,420px);min-height:240px;perspective:1400px}
+    .cart{position:absolute;left:50%;top:50%;width:clamp(220px,22vw,360px);height:clamp(170px,17vw,280px);transform-origin:center center;transition:transform .44s cubic-bezier(.2,.72,.12,1), opacity .28s ease, filter .28s ease;will-change:transform,opacity;cursor:pointer;user-select:none}
+    .cart-shell{position:relative;width:100%;height:100%;padding:14px 14px 12px;border-radius:26px 26px 20px 20px;background:linear-gradient(180deg,#fbfdff,#eef2f8);border:1px solid #d3dbea;box-shadow:0 24px 42px rgba(24,39,69,.12), inset 0 2px 0 rgba(255,255,255,.94);overflow:hidden}
+    .cart-shell::before{content:"";position:absolute;left:50%;top:0;width:96px;height:16px;transform:translateX(-50%);border-radius:0 0 16px 16px;background:linear-gradient(180deg,#dce4ef,#c8d2e1)}
+    .cover{position:relative;height:68%;border-radius:18px;border:1px solid rgba(25,40,72,.08);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.42)}
+    .cart-meta{position:absolute;left:22px;right:22px;bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .tag{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;background:#eef4ff;border:1px solid #d8e5ff;font-size:.74rem;font-weight:900;color:#335ca8;white-space:nowrap}
+    .title{font-size:1.1rem;font-weight:900;line-height:1.16;min-width:0;flex:1;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cart.center .cart-shell{box-shadow:0 30px 56px rgba(17,31,56,.16), inset 0 2px 0 rgba(255,255,255,.97);border-color:#b8c8e3}
+    .cart.center .title{font-size:1.18rem}
+    .bottom-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:0 4px}
+    .helper{color:var(--sub);font-size:.95rem;font-weight:700;letter-spacing:.01em}
+    .launch-btn{border:0;border-radius:999px;padding:13px 22px;background:linear-gradient(135deg,#15243d,#294877);color:#fff;font:inherit;font-weight:900;cursor:pointer;box-shadow:var(--soft-shadow);transition:transform .16s ease,filter .16s ease,opacity .16s ease}
+    .launch-btn:hover{filter:brightness(1.05);transform:translateY(-1px)}
+    .launch-btn:active{transform:translateY(1px)}
+    .launch-btn[disabled]{opacity:.45;cursor:not-allowed;transform:none;filter:none}
+    button{font:inherit}
+
+    .cover-road{background:linear-gradient(180deg,#9dd8ff 0 40%, #d8f0ff 40% 48%, #3f566d 48% 100%)}
+    .cover-road .sun{position:absolute;right:14px;top:12px;width:36px;height:36px;border-radius:50%;background:#ffd86a}
+    .cover-road .road-line{position:absolute;left:50%;bottom:0;width:14px;height:100%;transform:translateX(-50%);background:repeating-linear-gradient(180deg, transparent 0 16px, #fff 16px 30px)}
+    .cover-road .car-body{position:absolute;left:28px;bottom:28px;width:108px;height:42px;border-radius:22px 28px 16px 16px;background:#ef9a9a;box-shadow:inset 0 -5px 0 rgba(0,0,0,.14)}
+    .cover-road .car-top{position:absolute;left:54px;bottom:56px;width:54px;height:22px;border-radius:16px 16px 8px 8px;background:#c7f0ff}
+    .cover-road .wheel,.cover-road .wheel2{position:absolute;bottom:18px;width:24px;height:24px;border-radius:50%;background:#1f2937;border:5px solid #c8d4e8}
+    .cover-road .wheel{left:40px}.cover-road .wheel2{left:104px}
+
+    .cover-ice{background:linear-gradient(180deg,#ffe6ef,#fff1f6 42%,#d9f1ff 42% 100%)}
+    .cover-ice .cone{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:0;height:0;border-left:32px solid transparent;border-right:32px solid transparent;border-top:76px solid #d39a5f}
+    .cover-ice .scoop1,.cover-ice .scoop2,.cover-ice .scoop3{position:absolute;border-radius:50%;box-shadow:inset 0 -8px 0 rgba(255,255,255,.2)}
+    .cover-ice .scoop1{left:94px;top:40px;width:58px;height:58px;background:#ff9cc2}
+    .cover-ice .scoop2{left:126px;top:28px;width:60px;height:60px;background:#fff0a6}
+    .cover-ice .scoop3{left:154px;top:42px;width:58px;height:58px;background:#96dcff}
+    .cover-ice .sprinkle{position:absolute;width:9px;height:4px;border-radius:999px;background:#fff;transform:rotate(var(--r));opacity:.92}
+
+    .cover-rhythm{background:linear-gradient(180deg,#151b2f,#253659 70%,#1c2844)}
+    .cover-rhythm .bar{position:absolute;bottom:18px;width:20px;border-radius:999px 999px 6px 6px;background:linear-gradient(180deg,#8bf4ff,#4c8dff)}
+    .cover-rhythm .bar.b1{left:42px;height:42px}.cover-rhythm .bar.b2{left:70px;height:78px}.cover-rhythm .bar.b3{left:98px;height:56px}.cover-rhythm .bar.b4{left:126px;height:96px}.cover-rhythm .bar.b5{left:154px;height:68px}.cover-rhythm .bar.b6{left:182px;height:110px}.cover-rhythm .bar.b7{left:210px;height:84px}
+    .cover-rhythm .note{position:absolute;font-size:40px;right:26px;top:18px;color:#fff;filter:drop-shadow(0 10px 16px rgba(76,141,255,.4))}
+    .cover-rhythm .ring{position:absolute;border-radius:50%;border:3px solid rgba(139,244,255,.5)}
+    .cover-rhythm .ring.r1{width:74px;height:74px;left:24px;top:18px}.cover-rhythm .ring.r2{width:120px;height:120px;left:8px;top:4px;opacity:.4}
+
+    .cover-sushi{background:linear-gradient(180deg,#fff6e1,#ffecc3 55%,#f4ddba)}
+    .cover-sushi .tray{position:absolute;left:18px;right:18px;bottom:18px;height:64px;border-radius:18px;background:#5b4334;box-shadow:inset 0 8px 0 rgba(255,255,255,.08)}
+    .cover-sushi .piece{position:absolute;bottom:44px;width:58px;height:34px;border-radius:18px;background:#fff;box-shadow:0 6px 10px rgba(91,67,52,.15)}
+    .cover-sushi .piece::before{content:"";position:absolute;left:6px;right:6px;top:-12px;height:18px;border-radius:12px;background:var(--top,#ff8e7a)}
+    .cover-sushi .piece.p1{left:32px;--top:#ff8e7a}.cover-sushi .piece.p2{left:100px;--top:#ffcf66}.cover-sushi .piece.p3{left:168px;--top:#7fd0ff}
+    .cover-sushi .roll{position:absolute;right:26px;top:18px;width:48px;height:48px;border-radius:50%;background:#1f2937;box-shadow:inset 0 0 0 10px #fff, inset 0 0 0 18px #82d38b}
+
+    .cover-quiz{background:linear-gradient(180deg,#dff3ff,#ecf8ff 35%,#173b4f 35% 100%)}
+    .cover-quiz .board{position:absolute;left:18px;right:18px;top:26px;bottom:18px;border-radius:16px;background:#28536a;box-shadow:inset 0 0 0 6px #d0b08a}
+    .cover-quiz .mark{position:absolute;top:42px;font-weight:900;font-size:52px;line-height:1}
+    .cover-quiz .mark.ok{left:48px;color:#8ef0a0}.cover-quiz .mark.ng{right:48px;color:#ff9399}
+    .cover-quiz .q{position:absolute;left:50%;top:80px;transform:translateX(-50%);font-size:42px;font-weight:900;color:#fff}
+    .cover-quiz .book{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);width:94px;height:22px;border-radius:6px;background:#7cc2ff;box-shadow:0 8px 0 #fff}
+
+    .cover-generic{background:linear-gradient(135deg,#f0f4ff,#dbe9ff)}
+    .cover-generic .emoji{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(54px,6vw,86px)}
+    .cover-generic .orb{position:absolute;border-radius:50%;opacity:.26}
+    .cover-generic .orb.o1{width:68px;height:68px;left:14px;top:18px;background:#78a7ff}
+    .cover-generic .orb.o2{width:94px;height:94px;right:-14px;bottom:-14px;background:#ffc976}
+
+    @media (max-width:980px){
+      .carousel-stage{height:min(100%,360px)}
+      .cart{width:clamp(220px,28vw,310px);height:clamp(172px,22vw,238px)}
+    }
+    @media (max-width:720px){
+      body{padding:10px 10px 14px}
+      .launcher{height:calc(100dvh - 24px)}
+      .frame{padding:10px;border-radius:26px}
+      .viewport{border-radius:20px}
+      .carousel-area{padding:14px 10px 20px}
+      .carousel-stage{min-height:210px;height:min(100%,300px)}
+      .tag{font-size:.66rem;padding:5px 8px}
+      .title{font-size:.92rem}.cart.center .title{font-size:1rem}
+      .cart-meta{left:18px;right:18px;bottom:12px}
+      .bottom-bar{justify-content:center;gap:8px}
+      .helper{width:100%;text-align:center;font-size:.82rem}
+      .launch-btn{width:100%;padding:11px 18px}
+    }
+    @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+  </style>
+</head>
+<body>
+  <main class="launcher">
+    <section class="frame">
+      <div class="viewport">
+        <div class="carousel-area">
+          <div class="carousel-stage" id="carouselStage" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+    <div class="bottom-bar">
+      <div class="helper" id="helperText">読み込み中…</div>
+      <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+    </div>
+  </main>
+
+  <script>
+    const FALLBACK_GAMES = [
+      { file:'car.html', title:'レトロレーサー', tag:'Arcade', cover:'road', order:10 },
+      { file:'ice-cream.html', title:'アイスタワー', tag:'Balance', cover:'ice', order:20 },
+      { file:'rhythm.html', title:'リズム', tag:'Rhythm', cover:'rhythm', order:30 },
+      { file:'sushi.html', title:'寿司キャッチ', tag:'Action', cover:'sushi', order:40 },
+      { file:'quiz.html', title:'クイズ', tag:'Quiz', cover:'quiz', order:50 }
+    ];
+    const IGNORE_FILES = new Set(['index.html', 'quize.html']);
+
+    const COVER_PRESETS = {
+      road: {
+        className: 'cover-road',
+        html: '<div class="sun"></div><div class="road-line"></div><div class="car-top"></div><div class="car-body"></div><div class="wheel"></div><div class="wheel2"></div>'
+      },
+      ice: {
+        className: 'cover-ice',
+        html: '<div class="cone"></div><div class="scoop1"></div><div class="scoop2"></div><div class="scoop3"></div>'+
+          '<div class="sprinkle" style="left:102px;top:52px;--r:24deg"></div><div class="sprinkle" style="left:138px;top:48px;--r:-18deg"></div>'+
+          '<div class="sprinkle" style="left:166px;top:60px;--r:12deg"></div><div class="sprinkle" style="left:150px;top:36px;--r:-32deg"></div>'
+      },
+      rhythm: {
+        className: 'cover-rhythm',
+        html: '<div class="ring r1"></div><div class="ring r2"></div><div class="note">♪</div>'+
+          '<div class="bar b1"></div><div class="bar b2"></div><div class="bar b3"></div><div class="bar b4"></div><div class="bar b5"></div><div class="bar b6"></div><div class="bar b7"></div>'
+      },
+      sushi: {
+        className: 'cover-sushi',
+        html: '<div class="roll"></div><div class="tray"></div><div class="piece p1"></div><div class="piece p2"></div><div class="piece p3"></div>'
+      },
+      quiz: {
+        className: 'cover-quiz',
+        html: '<div class="board"></div><div class="mark ok">○</div><div class="mark ng">×</div><div class="q">?</div><div class="book"></div>'
+      }
+    };
+
+    const stage = document.getElementById('carouselStage');
+    const helperText = document.getElementById('helperText');
+    const startButton = document.getElementById('startButton');
+
+    let games = [];
+    let selectedIndex = 0;
+    let animating = false;
+    let audioCtx = null;
+    const padState = { left:false, right:false, confirm:false };
+
+    function ensureAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+    function tone(freq, duration = 0.08, type = 'square', gainValue = 0.026, when = 0) {
+      const ctx = ensureAudio();
+      const start = ctx.currentTime + when;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + duration + 0.04);
+    }
+    const sfx = {
+      move(){ tone(420, 0.04, 'triangle', 0.022); },
+      launch(){ tone(300, 0.04, 'square', 0.028); tone(480, 0.05, 'triangle', 0.022, 0.04); tone(720, 0.1, 'triangle', 0.02, 0.08); }
+    };
+
+    function coverMarkup(game) {
+      const preset = COVER_PRESETS[game.cover] || null;
+      if (preset) return `<div class="cover ${preset.className}">${preset.html}</div>`;
+      const emoji = game.emoji || '🎮';
+      return `<div class="cover cover-generic"><div class="orb o1"></div><div class="orb o2"></div><div class="emoji">${emoji}</div></div>`;
+    }
+
+    function createCart(game, index) {
+      const article = document.createElement('article');
+      article.className = 'cart';
+      article.dataset.index = index;
+      article.setAttribute('role', 'button');
+      article.setAttribute('tabindex', index === 0 ? '0' : '-1');
+      article.innerHTML = `
+        <div class="cart-shell">
+          ${coverMarkup(game)}
+          <div class="cart-meta">
+            <div class="tag">${game.tag || 'Game'}</div>
+            <div class="title">${game.title}</div>
+          </div>
+        </div>`;
+      article.addEventListener('click', () => {
+        if (selectedIndex === index) launchSelected();
+        else selectGame(index, true);
+      });
+      return article;
+    }
+
+    function buildStage() {
+      stage.innerHTML = '';
+      games.forEach((game, index) => stage.appendChild(createCart(game, index)));
+    }
+
+    function relativeOffset(index) {
+      const total = games.length;
+      let diff = index - selectedIndex;
+      if (diff > total / 2) diff -= total;
+      if (diff < -total / 2) diff += total;
+      return diff;
+    }
+
+    function getPose(offset) {
+      const firstCard = stage.children[0];
+      const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : 280;
+      const sideX = Math.round(cardWidth * 0.78);
+      const farX = Math.round(cardWidth * 1.16);
+      const map = {
+        0:{x:0,y:0,scale:1.02,rotate:0,opacity:1,z:40,blur:0},
+        1:{x:sideX,y:14,scale:.82,rotate:-8,opacity:.34,z:30,blur:.3},
+        '-1':{x:-sideX,y:14,scale:.82,rotate:8,opacity:.34,z:30,blur:.3},
+        2:{x:farX,y:22,scale:.68,rotate:-11,opacity:.14,z:20,blur:.75},
+        '-2':{x:-farX,y:22,scale:.68,rotate:11,opacity:.14,z:20,blur:.75}
+      };
+      return map[offset] || {x:offset * farX,y:28,scale:.6,rotate:offset > 0 ? -14 : 14,opacity:0,z:1,blur:1.2};
+    }
+
+    function renderCarousel() {
+      [...stage.children].forEach((card, index) => {
+        const offset = relativeOffset(index);
+        const pose = getPose(offset);
+        card.style.zIndex = pose.z;
+        card.style.opacity = pose.opacity;
+        card.style.filter = `blur(${pose.blur}px)`;
+        card.style.transform = `translate(-50%, -50%) translateX(${pose.x}px) translateY(${pose.y}px) scale(${pose.scale}) rotateY(${pose.rotate}deg)`;
+        card.classList.toggle('center', offset === 0);
+        card.setAttribute('aria-hidden', Math.abs(offset) > 2 ? 'true' : 'false');
+        card.setAttribute('tabindex', offset === 0 ? '0' : '-1');
+      });
+      const game = games[selectedIndex];
+      startButton.disabled = !game;
+      if (game) helperText.textContent = `${game.title} / ← → / ↑`;
+    }
+
+    function pulseSelectedCard() {
+      const card = stage.children[selectedIndex];
+      if (!card) return;
+      card.animate(
+        [
+          { transform: card.style.transform, filter: card.style.filter || 'blur(0px)' },
+          { transform: `${card.style.transform} scale(1.03)`, filter: 'blur(0px) brightness(1.03)' },
+          { transform: card.style.transform, filter: card.style.filter || 'blur(0px)' }
+        ],
+        { duration: 220, easing: 'ease-out' }
+      );
+    }
+
+    function selectGame(index, animate = false) {
+      if (!games.length || animating) return;
+      selectedIndex = (index + games.length) % games.length;
+      renderCarousel();
+      if (animate) {
+        ensureAudio();
+        sfx.move();
+        pulseSelectedCard();
+        animating = true;
+        setTimeout(() => { animating = false; }, 160);
+      }
+    }
+
+    function moveSelection(delta) {
+      selectGame(selectedIndex + delta, true);
+    }
+
+    function launchSelected() {
+      if (animating || !games[selectedIndex]) return;
+      const game = games[selectedIndex];
+      ensureAudio();
+      sfx.launch();
+      helperText.textContent = `${game.title} を起動しています…`;
+      setTimeout(() => { window.location.href = game.file; }, 180);
+    }
+
+    function normalizeGame(record) {
+      const fallback = FALLBACK_GAMES.find(item => item.file === record.file) || {};
+      return {
+        file: record.file,
+        title: record.title || fallback.title || record.file.replace(/\.html$/i, ''),
+        tag: record.tag || fallback.tag || 'Game',
+        cover: record.cover || fallback.cover || 'generic',
+        emoji: record.emoji || fallback.emoji || '🎮',
+        order: Number(record.order ?? fallback.order ?? 999)
+      };
+    }
+
+    function parseGameMeta(fileName, htmlText) {
+      const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+      const meta = (name) => doc.querySelector(`meta[name="${name}"]`)?.content?.trim() || '';
+      return normalizeGame({
+        file: fileName,
+        title: meta('game:title') || doc.title,
+        tag: meta('game:tag'),
+        cover: meta('game:cover'),
+        emoji: meta('game:emoji'),
+        order: meta('game:order')
+      });
+    }
+
+    async function discoverFilesFromDirectory() {
+      if (location.protocol === 'file:') return [];
+      try {
+        const res = await fetch('./', { cache:'no-store' });
+        if (!res.ok) return [];
+        const text = await res.text();
+        const doc = new DOMParser().parseFromString(text, 'text/html');
+        const hrefs = [...doc.querySelectorAll('a[href]')]
+          .map((a) => a.getAttribute('href') || '')
+          .map((href) => href.split('#')[0].split('?')[0])
+          .filter((href) => /\.html?$/i.test(href))
+          .map((href) => href.replace(/^\.\//, ''))
+          .filter((href) => !href.includes('/'))
+          .filter((href) => !IGNORE_FILES.has(href))
+          .filter((href) => !href.startsWith('_') && !href.startsWith('.'));
+        return [...new Set(hrefs)];
+      } catch {
+        return [];
+      }
+    }
+
+    async function loadGames() {
+      const discovered = await discoverFilesFromDirectory();
+      const files = discovered.length ? discovered : FALLBACK_GAMES.map((game) => game.file);
+      const loaded = await Promise.all(files.map(async (file) => {
+        try {
+          const res = await fetch(file, { cache:'no-store' });
+          if (!res.ok) throw new Error('read failed');
+          const text = await res.text();
+          return parseGameMeta(file, text);
+        } catch {
+          return normalizeGame({ file });
+        }
+      }));
+      const unique = [];
+      const seen = new Set();
+      loaded.forEach((item) => {
+        if (seen.has(item.file)) return;
+        seen.add(item.file);
+        unique.push(item);
+      });
+      return unique.sort((a, b) => a.order - b.order || a.file.localeCompare(b.file, 'ja'));
+    }
+
+    function handleKeydown(e) {
+      if (['ArrowLeft','a','A'].includes(e.key)) { e.preventDefault(); moveSelection(-1); }
+      if (['ArrowRight','d','D'].includes(e.key)) { e.preventDefault(); moveSelection(1); }
+      if (['Enter',' ','ArrowUp'].includes(e.key)) { e.preventDefault(); launchSelected(); }
+    }
+
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const pad = [...pads].find(Boolean);
+      if (!pad) {
+        padState.left = false;
+        padState.right = false;
+        padState.confirm = false;
+        return;
+      }
+      const x = Math.abs(pad.axes[0] || 0) > 0.35 ? pad.axes[0] : 0;
+      const y = Math.abs(pad.axes[1] || 0) > 0.35 ? pad.axes[1] : 0;
+      const left = !!(pad.buttons[14]?.pressed || x < -0.35);
+      const right = !!(pad.buttons[15]?.pressed || x > 0.35);
+      const confirm = !!(pad.buttons[12]?.pressed || pad.buttons[0]?.pressed || pad.buttons[1]?.pressed || y < -0.45);
+      if (left && !padState.left) moveSelection(-1);
+      if (right && !padState.right) moveSelection(1);
+      if (confirm && !padState.confirm) launchSelected();
+      padState.left = left;
+      padState.right = right;
+      padState.confirm = confirm;
+    }
+
+    function loop() {
+      pollGamepad();
+      requestAnimationFrame(loop);
+    }
+
+    startButton.addEventListener('click', launchSelected);
+    window.addEventListener('pointerdown', () => ensureAudio(), { passive:true });
+    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('resize', renderCarousel);
+
+    (async () => {
+      games = await loadGames();
+      buildStage();
+      if (!games.length) {
+        helperText.textContent = 'games フォルダにゲームがありません';
+        return;
+      }
+      selectGame(0, false);
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

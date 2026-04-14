@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="game:title" content="サンプルゲーム" />
+  <meta name="game:tag" content="Sample" />
+  <meta name="game:cover" content="generic" />
+  <meta name="game:emoji" content="🧩" />
+  <meta name="game:order" content="999" />
+  <title>Feeling Game | サンプルゲーム</title>
+  <style>
+    :root{
+      --bg:#0f1f36;
+      --panel:rgba(8,18,34,.88);
+      --line:rgba(255,255,255,.14);
+      --text:#f4f8ff;
+      --sub:#c8d8f5;
+      --accent:#70c7ff;
+      --shadow:0 14px 32px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;background:linear-gradient(160deg,#132b48,#204a7a);color:var(--text);overflow:hidden}
+    body{padding:14px}
+    .home-btn{position:fixed;top:14px;left:14px;z-index:20;padding:10px 14px;border-radius:999px;text-decoration:none;color:#fff;background:rgba(12,14,24,.68);border:1px solid rgba(255,255,255,.14);box-shadow:0 10px 24px rgba(0,0,0,.22);backdrop-filter:blur(8px)}
+    .home-btn:hover{filter:brightness(1.08)}
+    #app{width:min(1100px,100%);height:calc(100dvh - 28px);margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:22px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px}
+    .panel{border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.04);padding:16px}
+    .title{font-size:clamp(1.4rem,2.4vw,2rem);font-weight:900}
+    .sub{margin-top:6px;color:var(--sub)}
+    .center{display:grid;place-items:center;text-align:center}
+    .placeholder{width:min(440px,100%);aspect-ratio:16/10;border-radius:22px;border:1px dashed rgba(255,255,255,.2);display:grid;place-items:center;background:rgba(255,255,255,.03)}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;color:var(--sub);font-weight:700}
+    @media (max-width:720px){body{padding:10px}#app{height:calc(100dvh - 20px);padding:16px}}
+  </style>
+</head>
+<body>
+  <a class="home-btn" href="./games/index.html">← ゲーム選択</a>
+  <main id="app">
+    <section class="panel">
+      <div class="title">サンプルゲーム</div>
+      <div class="sub">今後のゲーム制作テンプレート</div>
+    </section>
+
+    <section class="panel center">
+      <div class="placeholder">
+        <div>
+          <div style="font-size:3rem">🧩</div>
+          <div>ここにゲーム画面を作ります</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="controls">← → : 移動 / ↑ : 決定 / Esc or Start : 戻る</div>
+    </section>
+  </main>
+
+  <script>
+    /**
+     * ==========================================================
+     * Feeling Game 共通テンプレート
+     * ==========================================================
+     * 1. ファイル名は kebab-case を推奨します。
+     *    例: card-match.html / math-runner.html
+     *
+     * 2. games フォルダへ置く場合は、head 内の meta を必ず設定してください。
+     *    game:title  … 選択画面に出す名前
+     *    game:tag    … 小さいタグ表示
+     *    game:cover  … road / ice / rhythm / sushi / quiz / generic
+     *    game:emoji  … generic の時に出す絵文字
+     *    game:order  … 並び順
+     *
+     * 3. 画面サイズは以下を基準にしてください。
+     *    - body は overflow:hidden
+     *    - #app は height: calc(100dvh - 余白)
+     *    - これで表示中の画面サイズに自然に収まりやすくなります
+     *
+     * 4. 戻るボタンは必ず配置してください。
+     *    <a class="home-btn" href="./index.html">← ゲーム選択</a>
+     *    ※ games フォルダ内の HTML から launcher に戻る想定です。
+     *
+     * 5. 入力の命名はそろえてください。
+     *    - left / right / up / down
+     *    - confirm  … 決定
+     *    - start    … 開始 / 戻る
+     *
+     * 6. コントローラの方針
+     *    - 十字キー左右 で移動
+     *    - 十字キー↑ を決定として扱う
+     *    - A/B ボタンも confirm に割り当ててよい
+     *
+     * 7. GPT / Gemini に渡すときに重要なこと
+     *    - レイアウトは 1 ファイルで完結させる
+     *    - 画面外にはみ出しにくいサイズにする
+     *    - body / #app / home-btn の構成を崩しすぎない
+     *    - launcher 自動登録用 meta は消さない
+     */
+
+    const APP_CONFIG = {
+      title: 'サンプルゲーム',
+      confirmKeys: ['Enter', ' ', 'ArrowUp'],
+      backKeys: ['Escape']
+    };
+
+    const inputState = {
+      left: false,
+      right: false,
+      confirm: false,
+      start: false,
+      gamepad: { left:false, right:false, confirm:false, start:false }
+    };
+
+    function goHome() {
+      location.href = './games/index.html';
+    }
+
+    function onConfirm() {
+      // ここに「決定」時の処理を書きます。
+      console.log('confirm');
+    }
+
+    function onMove(dir) {
+      // dir は -1 / 1 を想定しています。
+      console.log('move', dir);
+    }
+
+    function handleKeyboardDown(event) {
+      if (event.key === 'ArrowLeft') onMove(-1);
+      if (event.key === 'ArrowRight') onMove(1);
+      if (APP_CONFIG.confirmKeys.includes(event.key)) onConfirm();
+      if (APP_CONFIG.backKeys.includes(event.key)) goHome();
+    }
+
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const pad = [...pads].find(Boolean);
+      if (!pad) {
+        inputState.gamepad.left = false;
+        inputState.gamepad.right = false;
+        inputState.gamepad.confirm = false;
+        inputState.gamepad.start = false;
+        return;
+      }
+
+      const left = !!(pad.buttons[14]?.pressed || (pad.axes[0] || 0) < -0.35);
+      const right = !!(pad.buttons[15]?.pressed || (pad.axes[0] || 0) > 0.35);
+      const confirm = !!(pad.buttons[12]?.pressed || pad.buttons[0]?.pressed || pad.buttons[1]?.pressed || (pad.axes[1] || 0) < -0.45);
+      const start = !!(pad.buttons[9]?.pressed || pad.buttons[7]?.pressed);
+
+      if (left && !inputState.gamepad.left) onMove(-1);
+      if (right && !inputState.gamepad.right) onMove(1);
+      if (confirm && !inputState.gamepad.confirm) onConfirm();
+      if (start && !inputState.gamepad.start) goHome();
+
+      inputState.gamepad.left = left;
+      inputState.gamepad.right = right;
+      inputState.gamepad.confirm = confirm;
+      inputState.gamepad.start = start;
+    }
+
+    window.addEventListener('keydown', handleKeyboardDown);
+    (function loop(){
+      pollGamepad();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

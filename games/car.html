@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="game:title" content="レトロレーサー">
+    <meta name="game:tag" content="Arcade">
+    <meta name="game:cover" content="road">
+    <meta name="game:order" content="10">
+    <meta name="game:emoji" content="🚗">
+    <!-- Launcher は上の meta 情報を見て自動でゲーム一覧を作ります -->
+    <title>Feeling Game | レトロレーサー</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #prep-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .panel {
+            background: #222;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #444;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0,210,252,0.3);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        label { cursor: pointer; font-size: 1.1rem; }
+        input[type="radio"] { transform: scale(1.3); margin-right: 10px; }
+
+        #start-btn {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+
+        #start-btn:hover { transform: scale(1.05); background: #ff4d6d; }
+
+        #gameCanvas {
+            background-color: #555;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: none;
+        }
+
+        #score { font-size: 2.5rem; font-weight: bold; color: #fff; text-shadow: 2px 2px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000; }
+    
+        .home-btn { position: fixed; top: 14px; left: 14px; z-index: 200; padding: 10px 14px; border-radius: 999px; text-decoration: none; color: #fff; background: rgba(12, 14, 24, 0.68); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 24px rgba(0,0,0,0.22); backdrop-filter: blur(8px); }
+        .home-btn:hover { filter: brightness(1.08); }
+
+    </style>
+</head>
+<body>
+<a class="home-btn" href="./index.html">← ゲーム選択</a>
+
+<div id="prep-screen">
+    <div class="panel">
+        <h1 style="color: #00d2fc; margin-bottom: 5px;">RETRO RACER</h1>
+        <p style="font-size: 0.9rem; color: #888;">横方向の入力だけで生き残れ</p>
+        
+        <div class="input-group">
+            <label><input type="radio" name="inputMode" value="keyboard" checked> ⌨️ キーボード (A/D or ←/→)</label>
+            <label><input type="radio" name="inputMode" value="gamepad"> 🎮 ゲームパッド (左スティック)</label>
+            <label><input type="radio" name="inputMode" value="gyro"> 📱 スマホの傾き (ジャイロ)</label>
+        </div>
+        
+        <button id="start-btn">START RACE</button>
+    </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+<div id="ui-layer">
+    <div id="score">0</div>
+</div>
+
+<script>
+class InputManager {
+    constructor() {
+        this.mode = 'keyboard'; 
+        this.axisX = 0;
+        this.rawKey = { x: 0 };
+        this.rawGyro = { x: 0 };
+        this.gamepadConnected = false;
+        this.initEvents();
+    }
+
+    initEvents() {
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') this.rawKey.x = -1;
+            if (e.key === 'ArrowRight' || e.key === 'd') this.rawKey.x = 1;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'a' || e.key === 'd') this.rawKey.x = 0;
+        });
+        window.addEventListener('deviceorientation', (e) => {
+            let gamma = e.gamma || 0;
+            this.rawGyro.x = Math.max(-90, Math.min(90, gamma)) / 45; 
+        });
+    }
+
+    requestGyroPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().catch(console.error);
+        }
+    }
+
+    update() {
+        let pad = null;
+        if (navigator.getGamepads) {
+            const gamepads = navigator.getGamepads();
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) { pad = gamepads[i]; this.gamepadConnected = true; break; }
+            }
+            if (!pad) this.gamepadConnected = false;
+        }
+
+        let targetX = 0;
+        if (this.mode === 'keyboard') targetX = this.rawKey.x;
+        else if (this.mode === 'gyro') targetX = this.rawGyro.x;
+        else if (this.mode === 'gamepad' && pad) {
+            let x = pad.axes[0];
+            targetX = Math.abs(x) < 0.15 ? 0 : x;
+        }
+        this.axisX = Math.max(-1, Math.min(1, targetX));
+    }
+}
+
+// --- ゲームエンジン ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const input = new InputManager();
+
+
+let audioCtx = null;
+let steerCooldown = 0;
+let scoreMilestone = 0;
+let lastSteerSign = 0;
+function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+function beep(freq, duration = 0.08, type = 'square', gainValue = 0.04, when = 0) {
+    const ctx = ensureAudio();
+    const start = ctx.currentTime + when;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.03);
+}
+const sfx = {
+    unlock(){ ensureAudio(); },
+    start(){ beep(220, 0.05, 'square', 0.05); beep(420, 0.06, 'sawtooth', 0.04, 0.05); beep(760, 0.12, 'triangle', 0.03, 0.1); },
+    steer(){ beep(540, 0.04, 'triangle', 0.025); },
+    milestone(){ beep(700, 0.04, 'square', 0.03); beep(980, 0.1, 'triangle', 0.025, 0.04); },
+    crash(){ beep(180, 0.12, 'sawtooth', 0.05); beep(90, 0.22, 'square', 0.035, 0.08); }
+};
+
+// ゲーム変数
+let isPlaying = false;
+let score = 0;
+let baseSpeed = 0;
+let speed = 0;
+let enemies = [];
+let roadOffset = 0;
+
+// 出現管理変数
+let distanceTraveled = 0; 
+
+// レイアウト変数
+let roadMargin = 0;
+let curbWidth = 0;
+let player = { x: 0, y: 0, vx: 0, w: 0, h: 0, color: '#00d2fc' };
+
+function resize() {
+    canvas.height = window.innerHeight;
+    canvas.width = Math.min(window.innerWidth, canvas.height * 0.75);
+    
+    roadMargin = canvas.width * 0.12;
+    curbWidth = canvas.width * 0.02;
+    player.w = canvas.width * 0.08;          
+    player.h = player.w * 1.85;              
+    
+    player.y = canvas.height - player.h - (canvas.height * 0.1);
+    if (!isPlaying) player.x = canvas.width / 2 - player.w / 2;
+}
+
+window.addEventListener('resize', resize);
+resize();
+
+document.getElementById('start-btn').addEventListener('click', () => {
+    sfx.unlock();
+    sfx.start();
+    input.mode = document.querySelector('input[name="inputMode"]:checked').value;
+    input.requestGyroPermission();
+    
+    document.getElementById('prep-screen').style.display = 'none';
+    
+    // パラメータの初期化
+    isPlaying = true;
+    score = 0;
+    baseSpeed = canvas.height * 0.006; 
+    speed = baseSpeed;
+    distanceTraveled = 0;
+    enemies = [];
+    player.vx = 0;
+    player.x = canvas.width / 2 - player.w / 2;
+    scoreMilestone = 0;
+    steerCooldown = 0;
+    lastSteerSign = 0;
+    
+    requestAnimationFrame(loop);
+});
+
+// --- 敵の出現ロジック（隙間保証システム） ---
+function spawnWave() {
+    // 1. スピード（難易度）に応じて最大出現数を決める
+    // 上限は最大3台（4レーン中、1レーンは必ず安全）
+    let maxCars = 1; 
+    if (speed > baseSpeed * 1.25) maxCars = 2; // 中盤: 最大2台
+    if (speed > baseSpeed * 1.6) maxCars = 3;  // 終盤: 最大3台
+
+    // 実際に出現する数 (1台 〜 maxCars台)
+    let carsToSpawn = 1 + Math.floor(Math.random() * maxCars);
+
+    // 2. 道路を4つのレーンに仮想的に分割する
+    const numLanes = 4;
+    const usableWidth = canvas.width - (roadMargin * 2) - (curbWidth * 2);
+    const laneWidth = usableWidth / numLanes;
+    const startX = roadMargin + curbWidth;
+
+    // 3. 必ず1つ「車を出さない安全レーン」を決める
+    let safeLane = Math.floor(Math.random() * numLanes);
+    let availableLanes = [0, 1, 2, 3].filter(l => l !== safeLane);
+    
+    // 残りのレーンから出現数分だけランダムに選ぶ
+    availableLanes.sort(() => Math.random() - 0.5);
+    let selectedLanes = availableLanes.slice(0, carsToSpawn);
+
+    // 4. 同じウェーブの敵は「すべて同じ速度」にして壁化を防ぐ
+    let waveSpeed = speed * (0.65 + Math.random() * 0.1);
+
+    // 選ばれたレーンに車を配置
+    selectedLanes.forEach(lane => {
+        // レーンの中央座標
+        let laneCenterX = startX + (lane * laneWidth) + (laneWidth / 2);
+        
+        // レーン内でほんの少しだけ左右に散らす（安全地帯にはみ出さない範囲）
+        let maxOffset = (laneWidth - player.w) * 0.5;
+        let offsetX = (Math.random() - 0.5) * maxOffset;
+        
+        let enemyX = laneCenterX + offsetX - (player.w / 2);
+        const hue = Math.floor(Math.random() * 360);
+
+        enemies.push({
+            x: enemyX,
+            y: -player.h * 1.5,
+            w: player.w,
+            h: player.h,
+            speed: waveSpeed,
+            color: `hsl(${hue}, 80%, 55%)`
+        });
+    });
+}
+
+function update() {
+    input.update();
+    
+    // 慣性移動
+    player.vx += input.axisX * (canvas.width * 0.005);
+    if (steerCooldown > 0) steerCooldown--;
+    const steerSign = input.axisX < -0.35 ? -1 : input.axisX > 0.35 ? 1 : 0;
+    if (steerSign !== 0 && steerSign !== lastSteerSign && steerCooldown <= 0) { sfx.steer(); steerCooldown = 10; }
+    lastSteerSign = steerSign; 
+    player.vx *= 0.88;
+    player.x += player.vx;
+
+    // 画面端の制限
+    const leftBound = roadMargin + curbWidth;
+    const rightBound = canvas.width - roadMargin - curbWidth - player.w;
+    if (player.x < leftBound) { player.x = leftBound; player.vx = 0; }
+    if (player.x > rightBound) { player.x = rightBound; player.vx = 0; }
+
+    // --- 難易度の更新（上限設定） ---
+    // baseSpeedの2倍を最高難易度のキャップ（上限）とする
+    if (speed < baseSpeed * 2.0) {
+        speed += 0.002;
+    }
+    score += Math.floor(speed / 2);
+    document.getElementById('score').innerText = score;
+    const currentMilestone = Math.floor(score / 600);
+    if (currentMilestone > scoreMilestone) { scoreMilestone = currentMilestone; sfx.milestone(); }
+
+    // --- 距離ベースの出現管理 ---
+    distanceTraveled += speed;
+    
+    // スピードが上がるほどインターバル（ウェーブの間隔）が狭くなる
+    // ただし、車の高さの3.5倍より狭くはならない（連なりすぎ防止）
+    let currentInterval = Math.max(player.h * 3.5, canvas.height * 0.4 - (speed - baseSpeed) * 30);
+
+    if (distanceTraveled > currentInterval) {
+        distanceTraveled = 0;
+        spawnWave();
+    }
+    
+    // 敵の移動と判定
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        let e = enemies[i];
+        e.y += e.speed;
+
+        // 衝突判定 (少し小さめにしてギリギリ避けられるように)
+        const padX = player.w * 0.15;
+        const padY = player.h * 0.1;
+        if (player.x + padX < e.x + e.w - padX && 
+            player.x + player.w - padX > e.x + padX &&
+            player.y + padY < e.y + e.h - padY && 
+            player.y + player.h - padY > e.y + padY) {
+            sfx.crash();
+            isPlaying = false;
+            document.getElementById('prep-screen').style.display = 'flex';
+            document.getElementById('start-btn').innerText = 'TRY AGAIN';
+        }
+        
+        // 画面外削除
+        if (e.y > canvas.height) enemies.splice(i, 1);
+    }
+}
+
+// 車両描画関数 (変更なし)
+function drawCar(ctx, x, y, w, h, color, isPlayer) {
+    ctx.save();
+    ctx.translate(x + w/2, y + h/2);
+    
+    if (isPlayer) ctx.rotate(player.vx * 0.03);
+
+    ctx.fillStyle = '#111';
+    const tireW = w * 0.25;
+    const tireH = h * 0.25;
+    ctx.fillRect(-w/2 - tireW/4, -h/2 + tireH/2, tireW, tireH);
+    ctx.fillRect(w/2 - tireW*0.75, -h/2 + tireH/2, tireW, tireH);
+    ctx.fillRect(-w/2 - tireW/4, h/2 - tireH*1.5, tireW, tireH);
+    ctx.fillRect(w/2 - tireW*0.75, h/2 - tireH*1.5, tireW, tireH);
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect(-w/2, -h/2, w, h, w*0.2);
+    ctx.fill();
+
+    if (isPlayer) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-w*0.1, -h/2, w*0.2, h);
+    }
+
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.moveTo(-w*0.4, -h*0.15);
+    ctx.lineTo(w*0.4, -h*0.15);
+    ctx.lineTo(w*0.3, h*0.1);
+    ctx.lineTo(-w*0.3, h*0.1);
+    ctx.fill();
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-w*0.35, h*0.25, w*0.7, h*0.15);
+
+    if (isPlayer) {
+        ctx.fillStyle = '#ffffe0';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#ffff00';
+        ctx.fillRect(-w*0.4, -h*0.45, w*0.25, h*0.08);
+        ctx.fillRect(w*0.15, -h*0.45, w*0.25, h*0.08);
+        ctx.shadowBlur = 0; 
+    } else {
+        ctx.fillStyle = '#ff3333';
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = '#ff0000';
+        ctx.fillRect(-w*0.4, h*0.4, w*0.25, h*0.06);
+        ctx.fillRect(w*0.15, h*0.4, w*0.25, h*0.06);
+        ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    roadOffset = (roadOffset + speed) % (canvas.height * 0.1);
+    ctx.fillStyle = '#2e8b57';
+    ctx.fillRect(0, 0, roadMargin, canvas.height);
+    ctx.fillRect(canvas.width - roadMargin, 0, roadMargin, canvas.height);
+    
+    const stripeLen = canvas.height * 0.08;
+    for (let i = -stripeLen; i < canvas.height; i += stripeLen) {
+        ctx.fillStyle = (i + roadOffset) % (stripeLen * 2) < stripeLen ? '#d32f2f' : '#fff';
+        ctx.fillRect(roadMargin, i + roadOffset, curbWidth, stripeLen);
+        ctx.fillRect(canvas.width - roadMargin - curbWidth, i + roadOffset, curbWidth, stripeLen);
+    }
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    const centerLineW = canvas.width * 0.015;
+    for (let i = -stripeLen; i < canvas.height; i += stripeLen * 2) {
+        ctx.fillRect(canvas.width / 2 - centerLineW / 2, i + roadOffset, centerLineW, stripeLen);
+    }
+
+    enemies.forEach(e => drawCar(ctx, e.x, e.y, e.w, e.h, e.color, false));
+    drawCar(ctx, player.x, player.y, player.w, player.h, player.color, true);
+}
+
+function loop() {
+    if (!isPlaying) return;
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

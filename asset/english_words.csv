@@ -1,0 +1,21 @@
+prompt,option1,option2,answer,explanation
+cat,ねこ,いぬ,1,cat は「ねこ」です。
+dog,いぬ,うま,1,dog は「いぬ」です。
+apple,りんご,ばなな,1,apple は「りんご」です。
+blue,あお,あか,1,blue は「青」です。
+book,本,つくえ,1,book は「本」です。
+sun,月,太陽,2,sun は「太陽」です。
+water,みず,ほし,1,water は「水」です。
+school,学校,公園,1,school は「学校」です。
+car,くるま,でんしゃ,1,car は「車」です。
+milk,牛乳,お茶,1,milk は「牛乳」です。
+りんご,apple,orange,1,りんご は apple です。
+いぬ,dog,bird,1,いぬ は dog です。
+学校,school,house,1,学校 は school です。
+赤,blue,red,2,赤 は red です。
+木,tree,fish,1,木 は tree です。
+鳥,bird,book,1,鳥 は bird です。
+月,sun,moon,2,月 は moon です。
+本,book,chair,1,本 は book です。
+魚,fish,water,1,魚 は fish です。
+白,black,white,2,白 は white です。

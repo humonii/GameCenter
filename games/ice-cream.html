@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="game:title" content="アイスタワー">
+    <meta name="game:tag" content="Balance">
+    <meta name="game:cover" content="ice">
+    <meta name="game:order" content="20">
+    <meta name="game:emoji" content="🍨">
+    <!-- Launcher は上の meta 情報を見て自動でゲーム一覧を作ります -->
+    <title>Feeling Game | アイスタワー</title>
+    <style>
+        body {
+            background-color: #fdf6e3;
+            color: #555;
+            font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', 'Comic Sans MS', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            padding-top: 15px;
+            touch-action: none;
+            box-sizing: border-box;
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(253, 246, 227, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+        }
+
+        #start-screen h1 { color: #ff8b94; font-size: 2rem; margin-bottom: 5px; }
+        #start-screen p { color: #555; margin-bottom: 20px; font-weight: bold; font-size: 0.95rem; line-height: 1.5; }
+        .highlight { color: #e94560; }
+        
+        #start-button {
+            background: #ffb3ba; color: #fff;
+            border: none; padding: 15px 40px;
+            border-radius: 30px; font-size: 1.2rem;
+            font-weight: bold; cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 4px 0 #ff8b94;
+            transition: transform 0.1s;
+        }
+        #start-button:active { transform: translateY(4px); box-shadow: 0 0 0 transparent; }
+        
+        .hidden { display: none !important; }
+
+        #gameCanvas {
+            background-color: #e0f7fa;
+            border: 4px solid #b2ebf2;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 500px;
+            flex-grow: 1;
+            box-sizing: border-box;
+        }
+
+        .controls-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0 10px 15px 10px;
+            flex-shrink: 0;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #ffb3ba;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            min-width: 250px;
+            font-size: 0.9rem;
+        }
+
+        .panel h3 { margin-top: 0; font-size: 1.1rem; color: #ff8b94; text-align: center; }
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+        label { cursor: pointer; padding: 5px; border-radius: 6px; transition: background 0.2s; text-align: left; }
+        label:hover { background: #fff0f5; }
+        #status { color: #ff8b94; font-weight: bold; text-align: center; margin-top: 10px; font-size: 0.85rem; }
+
+        .joystick-container { display: flex; flex-direction: column; align-items: center; }
+        .joystick-base { width: 90px; height: 90px; background: #fff; border-radius: 50%; position: relative; border: 4px solid #ffb3ba; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); }
+        .joystick-stick { width: 40px; height: 40px; background: #ffdfba; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: transform 0.05s linear; box-shadow: 0 4px 8px rgba(0,0,0,0.2); border: 2px solid #fff; }
+        .debug-text { font-family: monospace; font-size: 0.9rem; margin-top: 10px; color: #999; }
+    
+        .home-btn { position: fixed; top: 14px; left: 14px; z-index: 200; padding: 10px 14px; border-radius: 999px; text-decoration: none; color: #fff; background: rgba(12, 14, 24, 0.68); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 24px rgba(0,0,0,0.22); backdrop-filter: blur(8px); }
+        .home-btn:hover { filter: brightness(1.08); }
+
+    </style>
+</head>
+<body>
+<a class="home-btn" href="./index.html">← ゲーム選択</a>
+
+<div id="start-screen">
+    <h1>アイスクリームタワー</h1>
+    <p>
+        落とさずに、どこまで積めるかな？<br>
+        <span class="highlight">急に動くとタワーが傾いて崩れちゃうよ！</span><br>
+        傘のバランスをとるように、慎重に動かそう！
+    </p>
+    <div class="panel">
+        <h3>🍦 そうさほうほう</h3>
+        <div class="input-group">
+            <label><input type="radio" name="inputMode" value="keyboard" checked> ⌨️ キーボード (矢印 または A D)</label>
+            <label><input type="radio" name="inputMode" value="gamepad"> 🎮 ゲームパッド (左スティック)</label>
+            <label><input type="radio" name="inputMode" value="gyro"> 📱 スマホをかたむける</label>
+        </div>
+        <div id="status">パッドはつながっていません</div>
+    </div>
+    <button id="start-button">ゲームスタート！</button>
+</div>
+
+<canvas id="gameCanvas" width="340" height="480"></canvas>
+
+<div class="controls-wrapper">
+    <div class="joystick-container">
+        <div class="joystick-base">
+            <div class="joystick-stick" id="stick"></div>
+        </div>
+        <div class="debug-text" id="debug-out">X: 0.00</div>
+    </div>
+</div>
+
+<script>
+class InputManager {
+    constructor() {
+        this.mode = 'keyboard'; 
+        this.axisX = 0;
+        this.rawKey = { x: 0 };
+        this.rawGyro = { x: 0 };
+        this.gamepadConnected = false;
+        this.initEvents();
+    }
+
+    initEvents() {
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') this.rawKey.x = -1;
+            if (e.key === 'ArrowRight' || e.key === 'd') this.rawKey.x = 1;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'a' || e.key === 'd') this.rawKey.x = 0;
+        });
+
+        window.addEventListener('deviceorientation', (e) => {
+            let gamma = e.gamma || 0; 
+            this.rawGyro.x = Math.max(-45, Math.min(45, gamma)) / 45;
+        });
+    }
+
+    requestGyroPermission() {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission().then(state => {
+                if (state === 'granted') console.log("ジャイロ権限OK");
+            }).catch(console.error);
+        }
+    }
+
+    update() {
+        let pad = null;
+        if (navigator.getGamepads) {
+            const gamepads = navigator.getGamepads();
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) {
+                    pad = gamepads[i];
+                    this.gamepadConnected = true;
+                    break;
+                }
+            }
+            if (!pad) this.gamepadConnected = false;
+        }
+
+        let targetX = 0;
+        if (this.mode === 'keyboard') {
+            targetX = this.rawKey.x;
+        } else if (this.mode === 'gyro') {
+            targetX = this.rawGyro.x;
+        } else if (this.mode === 'gamepad') {
+            if (pad) {
+                let x = pad.axes[0];
+                const deadzone = 0.15;
+                if (Math.abs(x) < deadzone) x = 0;
+                targetX = x;
+            }
+        }
+
+        // スムージング処理（より滑らかになるように調整）
+        this.axisX += (targetX - this.axisX) * 0.1; 
+        if (Math.abs(this.axisX) < 0.01) this.axisX = 0;
+    }
+
+    getAxis() { return { x: this.axisX, y: 0 }; }
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const inputManager = new InputManager();
+
+const stickEl = document.getElementById('stick');
+const debugEl = document.getElementById('debug-out');
+const statusEl = document.getElementById('status');
+const radioButtons = document.querySelectorAll('input[name="inputMode"]');
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-button');
+
+radioButtons.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        inputManager.mode = e.target.value;
+        if (inputManager.mode === 'gyro') inputManager.requestGyroPermission();
+    });
+});
+
+startBtn.addEventListener('click', () => {
+    sfx.unlock();
+    sfx.start();
+    startScreen.classList.add('hidden');
+    resetGame();
+});
+
+
+let audioCtx = null;
+function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+function tone(freq, duration = 0.08, type = 'triangle', gainValue = 0.04, when = 0) {
+    const ctx = ensureAudio();
+    const start = ctx.currentTime + when;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(gainValue, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.03);
+}
+const sfx = {
+    unlock(){ ensureAudio(); },
+    start(){ tone(420, 0.05, 'square', 0.035); tone(720, 0.12, 'triangle', 0.03, 0.05); },
+    catch(){ tone(660, 0.06, 'triangle', 0.04); },
+    perfect(){ tone(760, 0.05, 'triangle', 0.04); tone(1120, 0.12, 'triangle', 0.035, 0.05); },
+    bad(){ tone(220, 0.14, 'sawtooth', 0.04); },
+    bomb(){ tone(180, 0.1, 'square', 0.05); tone(90, 0.22, 'sawtooth', 0.03, 0.06); },
+    gameover(){ tone(240, 0.09, 'square', 0.03); tone(190, 0.14, 'square', 0.03, 0.08); tone(140, 0.25, 'sawtooth', 0.028, 0.16); }
+};
+
+let CANVAS_W = canvas.width;
+let CANVAS_H = canvas.height;
+const SCOOP_RADIUS = 22; 
+const SCOOP_HEIGHT = 26; 
+const CONE_WIDTH = 34;
+const CONE_HEIGHT = 60;
+const MAX_ANGLE = 0.8; // バランス崩壊の限界角度(ラジアン) - 限界を広げました
+const COLORS = ['#ffb3ba', '#ffdfba', '#ffffba', '#baffc9', '#bae1ff', '#d4a373', '#f4c2c2', '#cbaacb'];
+
+let gameState = 'title'; 
+let score = 0;
+let lives = 3;
+let frameCount = 0;
+let shakeTimer = 0; 
+let combo = 0; 
+let popups = []; 
+
+// プレイヤーデータに「物理バランス」要素を追加
+let player = {
+    x: CANVAS_W / 2,
+    y: CANVAS_H - 30, 
+    vx: 0,
+    prevVx: 0,
+    scoops: [], 
+    towerAngle: 0,     // タワー全体の傾き
+    towerVelocity: 0   // 傾きの勢い
+};
+
+let drops = [];
+let particles = [];
+
+function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    CANVAS_W = rect.width;
+    CANVAS_H = rect.height;
+
+    if (gameState === 'title') {
+        player.x = CANVAS_W / 2;
+        player.y = CANVAS_H - 30;
+    } else {
+        if (player.x > CANVAS_W - CONE_WIDTH / 2) player.x = CANVAS_W - CONE_WIDTH / 2;
+    }
+}
+window.addEventListener('resize', resizeCanvas);
+
+function resetGame() {
+    player.x = CANVAS_W / 2;
+    player.y = CANVAS_H - 30;
+    player.vx = 0;
+    player.prevVx = 0;
+    player.scoops = [];
+    player.towerAngle = 0;
+    player.towerVelocity = 0;
+    drops = [];
+    particles = [];
+    popups = [];
+    score = 0;
+    combo = 0;
+    lives = 3;
+    frameCount = 0;
+    gameState = 'playing';
+}
+
+canvas.addEventListener('mousedown', () => { if (gameState === 'gameover') { sfx.start(); resetGame(); } });
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault(); 
+    if (gameState === 'gameover') { sfx.start(); resetGame(); }
+}, {passive: false});
+
+function spawnParticles(x, y, color) {
+    for (let i = 0; i < 8; i++) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8 - 2,
+            life: 20 + Math.random() * 10, color: color
+        });
+    }
+}
+
+// 角度つき描画ヘルパー
+function drawScoop(x, y, color, angle = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, SCOOP_RADIUS, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(-8, -8, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(-12, 10, 8, 0, Math.PI*2); ctx.arc(12, 10, 8, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+}
+
+function drawBomb(x, y) {
+    ctx.fillStyle = '#333';
+    ctx.beginPath(); ctx.arc(x, y, SCOOP_RADIUS - 2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(x - 6, y - 6, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#d4a373'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(x, y - SCOOP_RADIUS); ctx.quadraticCurveTo(x + 10, y - SCOOP_RADIUS - 10, x + 15, y - SCOOP_RADIUS - 5); ctx.stroke();
+    if (frameCount % 10 < 5) {
+        ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(x + 15, y - SCOOP_RADIUS - 5, 4, 0, Math.PI*2); ctx.fill();
+    }
+}
+
+function drawCone(x, y, angle = 0) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#e6b981';
+    ctx.beginPath(); ctx.moveTo(-CONE_WIDTH/2, -CONE_HEIGHT); ctx.lineTo(CONE_WIDTH/2, -CONE_HEIGHT); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#c49a6c'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-8, -CONE_HEIGHT); ctx.lineTo(0, -10); ctx.moveTo(8, -CONE_HEIGHT); ctx.lineTo(0, -10); ctx.stroke();
+    ctx.restore();
+}
+
+function loop() {
+    inputManager.update();
+    const inputX = inputManager.getAxis().x;
+
+    ctx.save();
+    ctx.fillStyle = '#e0f7fa';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+    if (shakeTimer > 0) {
+        ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+        shakeTimer--;
+    }
+
+    if (gameState === 'playing') {
+        frameCount++;
+
+        // --- 1. プレイヤー（コーン）の移動と加速度計算 ---
+        player.prevVx = player.vx;
+        player.vx += inputX * 1.2; // 少し動きをマイルドにしました
+        player.vx *= 0.85; 
+        player.x += player.vx;
+
+        if (player.x < CONE_WIDTH/2) { player.x = CONE_WIDTH/2; player.vx *= -0.5; } 
+        else if (player.x > CANVAS_W - CONE_WIDTH/2) { player.x = CANVAS_W - CONE_WIDTH/2; player.vx *= -0.5; }
+
+        let playerAx = player.vx - player.prevVx; // 加速度 (急な動きの検出)
+
+        // --- 2. 傘のバランス（タワーの傾き）物理計算 ---
+        let towerHeight = player.scoops.length;
+        if (towerHeight > 0) {
+            // 重力：傾いている方にさらに倒れようとする
+            let gravityEffect = player.towerAngle * 0.005 * (1 + towerHeight * 0.03);
+            
+            // 慣性：急発進・急停止すると逆方向に傾く
+            let inertiaEffect = -playerAx * 0.008 * (1 + towerHeight * 0.02);
+            
+            // 自己安定化（復元力）：急な動き（加速度）がないほど、自然と直立に戻ろうとする
+            let stabilityFactor = Math.max(0, 1 - Math.abs(playerAx) * 15);
+            let restoreEffect = -player.towerAngle * 0.015 * stabilityFactor;
+
+            // コンボによる安定アシスト
+            let comboAssist = (combo > 0) ? player.towerAngle * -0.005 * Math.min(combo, 5) : 0;
+
+            player.towerVelocity += gravityEffect + inertiaEffect + restoreEffect + comboAssist;
+            player.towerVelocity *= 0.8; // 空気抵抗（振動をスッと収束させる）
+            player.towerAngle += player.towerVelocity;
+
+            // 限界を超えたらタワー崩壊！
+            if (Math.abs(player.towerAngle) > MAX_ANGLE) {
+                lives--;
+                combo = 0;
+                shakeTimer = 20;
+                popups.push({ text: 'バランス崩壊！', x: player.x, y: player.y - 100, life: 60, color: '#ff6b6b' });
+                
+                // 積んでいたアイスを物理演算付きでバラバラに吹き飛ばす
+                let cx = player.x + Math.sin(player.towerAngle) * CONE_HEIGHT;
+                let cy = player.y - Math.cos(player.towerAngle) * CONE_HEIGHT;
+                for (let i = 0; i < player.scoops.length; i++) {
+                    let sx = cx + Math.sin(player.towerAngle) * (i * SCOOP_HEIGHT);
+                    let sy = cy - Math.cos(player.towerAngle) * (i * SCOOP_HEIGHT);
+                    drops.push({
+                        x: sx, y: sy,
+                        speed: -2 + Math.random() * -5,
+                        vx: (Math.random() - 0.5) * 8 + (player.towerVelocity * 50),
+                        color: player.scoops[i],
+                        type: 'debris' // 取れないゴミ判定
+                    });
+                }
+                player.scoops = [];
+                player.towerAngle = 0;
+                player.towerVelocity = 0;
+
+                if (lives <= 0) { sfx.gameover(); gameState = 'gameover'; }
+            }
+        } else {
+            // アイスが乗っていない時は自然に直立に戻る
+            player.towerAngle *= 0.8;
+            player.towerVelocity *= 0.8;
+        }
+
+        // --- 3. カメラのスクロール処理 ---
+        let topIceY = player.y - CONE_HEIGHT - (player.scoops.length * SCOOP_HEIGHT);
+        let targetScrollLimit = CANVAS_H * 0.55; 
+        if (topIceY < targetScrollLimit) {
+            let shift = (targetScrollLimit - topIceY) * 0.08; 
+            player.y += shift; 
+            for(let d of drops) d.y += shift; 
+            for(let p of particles) p.y += shift;
+        }
+
+        // --- 4. アイテムの生成 (理不尽防止) ---
+        let spawnRate = Math.max(35, 80 - Math.floor(player.scoops.length * 1.5));
+        if (frameCount % spawnRate === 0) {
+            let isBomb = (player.scoops.length >= 5 && Math.random() < 0.15);
+            
+            // プレイヤーの「向かっている方向」を予測して、届く範囲にだけ生成する
+            let predictedX = player.x + player.vx * 15; 
+            let minX = Math.max(SCOOP_RADIUS, predictedX - 120);
+            let maxX = Math.min(CANVAS_W - SCOOP_RADIUS, predictedX + 120);
+            let targetX = minX + Math.random() * (maxX - minX);
+
+            drops.push({
+                x: targetX,
+                y: -SCOOP_RADIUS * 2,
+                speed: 3 + Math.random() * 1.5 + (player.scoops.length * 0.04),
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                type: isBomb ? 'bomb' : 'ice'
+            });
+        }
+
+        // --- 5. キャッチ判定 ---
+        // コーンの先端座標
+        let cx = player.x + Math.sin(player.towerAngle) * CONE_HEIGHT;
+        let cy = player.y - Math.cos(player.towerAngle) * CONE_HEIGHT;
+        let topIndex = player.scoops.length;
+        // キャッチすべき座標（傾きを考慮）
+        let catchX = cx + Math.sin(player.towerAngle) * (topIndex * SCOOP_HEIGHT);
+        let catchY = cy - Math.cos(player.towerAngle) * (topIndex * SCOOP_HEIGHT);
+
+        for (let i = drops.length - 1; i >= 0; i--) {
+            let d = drops[i];
+            
+            if (d.type === 'debris') {
+                // 崩壊したアイスの破片は物理挙動のみ
+                d.x += d.vx;
+                d.y += d.speed;
+                d.speed += 0.4; // 重力
+                if (d.y > CANVAS_H + 50) drops.splice(i, 1);
+                continue;
+            }
+
+            let prevY = d.y;
+            d.y += d.speed;
+
+            if (prevY < catchY && d.y >= catchY) {
+                let dist = Math.abs(d.x - catchX);
+                if (dist < SCOOP_RADIUS + 5) {
+                    if (d.type === 'bomb') {
+                        lives--; combo = 0; shakeTimer = 20;
+                        sfx.bomb();
+                        spawnParticles(catchX, catchY, '#333');
+                        popups.push({ text: 'BOOM!', x: catchX, y: catchY - 20, life: 40, color: '#333' });
+                        if (lives <= 0) { sfx.gameover(); gameState = 'gameover'; }
+                    } else {
+                        player.scoops.push(d.color);
+                        if (dist < 8) {
+                            combo++;
+                            let addScore = 1 + Math.min(combo, 5);
+                            score += addScore;
+                            sfx.perfect();
+                            spawnParticles(catchX, catchY, '#ffdfba');
+                            popups.push({ text: `PERFECT! +${addScore}`, x: catchX, y: catchY - 20, life: 40, color: '#ff8b94' });
+                        } else {
+                            combo = 0; score += 1;
+                            sfx.catch();
+                            spawnParticles(catchX, catchY, d.color);
+                        }
+                    }
+                    drops.splice(i, 1);
+                    continue;
+                }
+            }
+
+            if (d.y > player.y + 50) {
+                if (d.type === 'ice') {
+                    lives--; combo = 0; shakeTimer = 15;
+                    sfx.bad();
+                    if (lives <= 0) { sfx.gameover(); gameState = 'gameover'; }
+                }
+                drops.splice(i, 1);
+            }
+        }
+
+        // --- 6. 描画 ---
+        drawCone(player.x, player.y, player.towerAngle);
+
+        for (let i = 0; i < player.scoops.length; i++) {
+            let sx = cx + Math.sin(player.towerAngle) * (i * SCOOP_HEIGHT);
+            let sy = cy - Math.cos(player.towerAngle) * (i * SCOOP_HEIGHT);
+            drawScoop(sx, sy, player.scoops[i], player.towerAngle);
+        }
+
+        for (let d of drops) {
+            if (d.type === 'bomb') drawBomb(d.x, d.y);
+            else drawScoop(d.x, d.y, d.color);
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life--;
+            ctx.globalAlpha = Math.max(0, p.life / 30);
+            ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+            if (p.life <= 0) particles.splice(i, 1);
+        }
+        
+        for (let i = popups.length - 1; i >= 0; i--) {
+            let p = popups[i];
+            p.y -= 1; p.life--;
+            ctx.globalAlpha = Math.max(0, p.life / 30);
+            ctx.fillStyle = p.color; ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(p.text, p.x, p.y);
+            if (p.life <= 0) popups.splice(i, 1);
+        }
+        ctx.globalAlpha = 1.0;
+
+        // --- UIの描画 ---
+        ctx.fillStyle = '#555'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`スコア: ${score}`, 15, 35);
+        ctx.fillStyle = '#ff6b6b'; ctx.font = '22px sans-serif'; ctx.textAlign = 'right';
+        let hearts = ''; for(let i=0; i<lives; i++) hearts += '❤'; ctx.fillText(hearts, CANVAS_W - 15, 35);
+
+        // --- バランスメーター ---
+        ctx.fillStyle = 'rgba(0,0,0,0.1)';
+        let meterW = Math.min(200, CANVAS_W - 40);
+        ctx.fillRect(CANVAS_W/2 - meterW/2, 10, meterW, 8);
+        
+        let indicatorX = CANVAS_W/2 + (player.towerAngle / MAX_ANGLE) * (meterW/2);
+        indicatorX = Math.max(CANVAS_W/2 - meterW/2, Math.min(CANVAS_W/2 + meterW/2, indicatorX));
+        
+        let dangerRatio = Math.abs(player.towerAngle) / MAX_ANGLE;
+        ctx.fillStyle = dangerRatio > 0.8 ? '#ff6b6b' : (dangerRatio > 0.4 ? '#ffdfba' : '#baffc9');
+        ctx.beginPath(); ctx.arc(indicatorX, 14, 6, 0, Math.PI*2); ctx.fill();
+        
+        // 中央と限界のライン
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(CANVAS_W/2 - 1, 6, 2, 16);
+        ctx.fillRect(CANVAS_W/2 - meterW/2 - 1, 8, 2, 12);
+        ctx.fillRect(CANVAS_W/2 + meterW/2 - 1, 8, 2, 12);
+
+    } else if (gameState === 'gameover') {
+        ctx.globalAlpha = 0.5;
+        drawCone(player.x, player.y, player.towerAngle);
+        let cx = player.x + Math.sin(player.towerAngle) * CONE_HEIGHT;
+        let cy = player.y - Math.cos(player.towerAngle) * CONE_HEIGHT;
+        for (let i = 0; i < player.scoops.length; i++) {
+            drawScoop(cx + Math.sin(player.towerAngle) * (i * SCOOP_HEIGHT), cy - Math.cos(player.towerAngle) * (i * SCOOP_HEIGHT), player.scoops[i], player.towerAngle);
+        }
+        ctx.globalAlpha = 1.0;
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+        ctx.fillRoundRect = function(x, y, w, h, r) { this.beginPath(); this.moveTo(x+r, y); this.lineTo(x+w-r, y); this.quadraticCurveTo(x+w, y, x+w, y+r); this.lineTo(x+w, y+h-r); this.quadraticCurveTo(x+w, y+h, x+w-r, y+h); this.lineTo(x+r, y+h); this.quadraticCurveTo(x, y+h, x, y+h-r); this.lineTo(x, y+r); this.quadraticCurveTo(x, y, x+r, y); this.closePath(); this.fill(); };
+        ctx.fillRoundRect(20, CANVAS_H/2 - 70, CANVAS_W - 40, 140, 15);
+
+        ctx.fillStyle = '#ff6b6b'; ctx.font = 'bold 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('ゲームオーバー！', CANVAS_W / 2, CANVAS_H / 2 - 25);
+        ctx.fillStyle = '#555'; ctx.font = 'bold 20px sans-serif'; ctx.fillText(`きろく： ${score}`, CANVAS_W / 2, CANVAS_H / 2 + 15);
+        let bounce = Math.sin(Date.now() / 150) * 3;
+        ctx.fillStyle = '#ffb3ba'; ctx.font = '16px sans-serif'; ctx.fillText('タップして もういっかい！', CANVAS_W / 2, CANVAS_H / 2 + 50 + bounce);
+    }
+
+    ctx.restore();
+
+    const moveRange = 25;
+    stickEl.style.transform = `translate(calc(-50% + ${inputX * moveRange}px), -50%)`;
+    debugEl.innerText = `X: ${inputX.toFixed(2)}`;
+
+    requestAnimationFrame(loop);
+}
+
+resizeCanvas();
+loop();
+</script>
+</body>
+</html>

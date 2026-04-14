@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="game:title" content="リズム">
+    <meta name="game:tag" content="Rhythm">
+    <meta name="game:cover" content="rhythm">
+    <meta name="game:order" content="30">
+    <meta name="game:emoji" content="🎵">
+    <!-- Launcher は上の meta 情報を見て自動でゲーム一覧を作ります -->
+    <title>Feeling Game | リズム</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --accent-pink: #e94560;
+            --accent-cyan: #00d2fc;
+            --char-color: #f9a826;
+            --text-color: #ffffff;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #2a2a4e 0%, #1a1a2e 100%);
+        }
+
+        /* タイムライン（譜面） */
+        #timeline-container {
+            position: absolute;
+            top: 20px;
+            width: 90%;
+            height: 60px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 30px;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.2);
+            z-index: 15;
+        }
+
+        #hit-target-circle {
+            position: absolute;
+            left: 20%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        #hit-line {
+            position: absolute;
+            left: 20%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #fff;
+            box-shadow: 0 0 8px #fff;
+            z-index: 2;
+        }
+
+        #notes-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .note {
+            position: absolute;
+            top: 50%;
+            width: 40px;
+            height: 40px;
+            margin-top: -20px;
+            margin-left: -20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: white;
+            z-index: 3;
+            box-sizing: border-box;
+            transition: opacity 0.2s;
+        }
+
+        .note-model {
+            background: #666;
+            border: 2px dashed #999;
+            opacity: 0.8;
+            transform: scale(0.8);
+        }
+
+        .note-player.note-left {
+            background: var(--accent-pink);
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--accent-pink);
+        }
+
+        .note-player.note-right {
+            background: var(--accent-cyan);
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .note-left::after { content: 'L'; }
+        .note-right::after { content: 'R'; }
+        
+        .note.hit-effect {
+            animation: noteHit 0.3s forwards;
+        }
+        
+        @keyframes noteHit {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .note-hold {
+            justify-content: center;
+            border-radius: 20px;
+        }
+        .note-player.note-left.note-hold::after { content: 'L\A HOLD'; white-space: pre; text-align: center; font-size: 0.8rem; line-height: 1.1; }
+        .note-player.note-right.note-hold::after { content: 'R\A HOLD'; white-space: pre; text-align: center; font-size: 0.8rem; line-height: 1.1; }
+        .note-model.note-left.note-hold::after { content: 'L\A HOLD'; white-space: pre; text-align: center; font-size: 0.8rem; line-height: 1.1; color: rgba(255,255,255,0.5); }
+        .note-model.note-right.note-hold::after { content: 'R\A HOLD'; white-space: pre; text-align: center; font-size: 0.8rem; line-height: 1.1; color: rgba(255,255,255,0.5); }
+
+        @keyframes holdingShake {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(2px); }
+            100% { transform: translateY(0); }
+        }
+        .holding-state {
+            animation: holdingShake 0.1s infinite;
+        }
+
+        /* UI要素 */
+        #ui-layer {
+            position: absolute;
+            top: 100px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #message-box {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-color);
+            text-shadow: 2px 2px 0px #000;
+            min-height: 3rem;
+            transition: transform 0.1s;
+        }
+
+        #score-display {
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            margin-top: 10px;
+        }
+
+        /* お手本（モデル）インジケーター */
+        #model-indicator {
+            position: absolute;
+            top: 35%;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 4px dashed rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: rgba(255,255,255,0.5);
+            transition: all 0.1s;
+        }
+        
+        #model-indicator.active-left {
+            transform: translateX(-80px) rotate(-30deg);
+            background-color: var(--accent-pink);
+            border-color: #fff;
+            color: #fff;
+        }
+
+        #model-indicator.active-right {
+            transform: translateX(80px) rotate(30deg);
+            background-color: var(--accent-cyan);
+            border-color: #fff;
+            color: #fff;
+        }
+
+        /* キャラクター (バランくん) */
+        #character-container {
+            position: absolute;
+            bottom: 20%;
+            width: 150px;
+            height: 150px;
+            transition: transform 0.1s ease-out; 
+            transform-origin: bottom center;
+        }
+
+        .balan-body {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: var(--char-color);
+            border-radius: 50%;
+            border: 8px solid #333;
+            box-sizing: border-box;
+            box-shadow: inset -10px -10px 0px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .balan-eye {
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border-radius: 50%;
+            border: 5px solid #333;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balan-pupil {
+            width: 20px;
+            height: 20px;
+            background-color: #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s;
+        }
+
+        .balan-arm {
+            position: absolute;
+            top: 50%;
+            width: 60px;
+            height: 15px;
+            background-color: #333;
+            border-radius: 10px;
+        }
+        .balan-arm.left { right: 90%; }
+        .balan-arm.right { left: 90%; }
+
+        /* スタート画面 */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            /* 背景を少し透けさせて、後ろのキャラクターのテスト動作を見えるようにする */
+            background-color: rgba(26, 26, 46, 0.85); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* 入力デバイス選択UI */
+        .input-mode-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 15px 0;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 20px;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-mode-container label {
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .input-mode-container input[type="radio"] {
+            accent-color: var(--accent-pink);
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+        }
+
+        #pad-status {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            color: var(--accent-pink);
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: var(--accent-pink);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #b32d43;
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin-top: 10px;
+        }
+
+        .btn:active {
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #b32d43;
+        }
+
+        /* 難易度選択UI */
+        .difficulty-container {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+
+        .difficulty-container label {
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .difficulty-container input[type="radio"] {
+            accent-color: var(--accent-cyan);
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+        }
+
+        /* 画面フィードバック */
+        .flash-just { animation: flashJust 0.3s; }
+        .flash-miss { animation: flashMiss 0.3s; }
+
+        @keyframes flashJust {
+            0% { background: radial-gradient(circle at center, #ffffff 0%, #1a1a2e 100%); }
+            100% { background: radial-gradient(circle at center, #2a2a4e 0%, #1a1a2e 100%); }
+        }
+        @keyframes flashMiss {
+            0% { background: radial-gradient(circle at center, #ff0000 0%, #1a1a2e 100%); }
+            100% { background: radial-gradient(circle at center, #2a2a4e 0%, #1a1a2e 100%); }
+        }
+
+        .shake { animation: shake 0.2s; }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+    
+        .home-btn { position: fixed; top: 14px; left: 14px; z-index: 200; padding: 10px 14px; border-radius: 999px; text-decoration: none; color: #fff; background: rgba(12, 14, 24, 0.68); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 24px rgba(0,0,0,0.22); backdrop-filter: blur(8px); }
+        .home-btn:hover { filter: brightness(1.08); }
+
+    </style>
+</head>
+<body>
+<a class="home-btn" href="./index.html">← ゲーム選択</a>
+
+<div id="game-container">
+    <div id="timeline-container">
+        <div id="hit-target-circle"></div>
+        <div id="hit-line"></div>
+        <div id="notes-layer"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div id="message-box"></div>
+        <div id="score-display">SCORE: <span id="score">0</span></div>
+    </div>
+
+    <div id="model-indicator">MODEL</div>
+
+    <div id="character-container">
+        <div class="balan-body" id="character-body">
+            <div class="balan-arm left"></div>
+            <div class="balan-arm right"></div>
+            <div class="balan-eye">
+                <div class="balan-pupil" id="char-pupil"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1 style="color: var(--accent-cyan); font-size: 2.5rem; margin-bottom: 5px; margin-top: 0;">リズム重力研究所</h1>
+        
+        <div class="input-mode-container">
+            <div style="text-align: center; margin-bottom: 5px; font-weight: bold; color: var(--char-color);">【 操作方法を選択 】</div>
+            <label><input type="radio" name="inputMode" value="keyboard" checked> ⌨️ キーボード (← →キー)</label>
+            <label><input type="radio" name="inputMode" value="gyro"> 📱 スマホの傾き</label>
+            <label><input type="radio" name="inputMode" value="gamepad"> 🎮 ゲームパッド (左スティック)</label>
+            <div id="pad-status">🎮 未接続 (何かボタンを押してください)</div>
+        </div>
+
+        <p style="font-size: 0.9rem; color: #ddd; margin-bottom: 15px;">※ 選択後、操作して背景のキャラが動くかテストできます</p>
+
+        <div class="difficulty-container">
+            <label><input type="radio" name="difficulty" value="0.4"> EASY</label>
+            <label><input type="radio" name="difficulty" value="0.25" checked> NORMAL</label>
+            <label><input type="radio" name="difficulty" value="0.12"> HARD</label>
+        </div>
+
+        <button class="btn" id="start-btn">ゲームスタート！</button>
+    </div>
+</div>
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+
+    // --- サウンドロジック (省略なし) ---
+    function playBeep(type, time) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        if (type === 'model') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(330, time);
+            gainNode.gain.setValueAtTime(0.18, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            osc.start(time);
+            osc.stop(time + 0.1);
+        } else if (type === 'just') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(520, time);
+            osc.frequency.exponentialRampToValueAtTime(720, time + 0.1);
+            gainNode.gain.setValueAtTime(0.16, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.start(time);
+            osc.stop(time + 0.2);
+        } else if (type === 'miss') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, time);
+            gainNode.gain.setValueAtTime(0.12, time);
+            gainNode.gain.linearRampToValueAtTime(0.01, time + 0.2);
+            osc.start(time);
+            osc.stop(time + 0.2);
+        } else if (type === 'model_hold') {
+            osc.type = 'sine';
+            const dur = arguments[2] || 0.1;
+            osc.frequency.setValueAtTime(330, time);
+            gainNode.gain.setValueAtTime(0.18, time);
+            gainNode.gain.linearRampToValueAtTime(0.5, time + dur - 0.05);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + dur);
+            osc.start(time);
+            osc.stop(time + dur);
+        } else if (type === 'just_high') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(640, time);
+            osc.frequency.exponentialRampToValueAtTime(880, time + 0.1);
+            gainNode.gain.setValueAtTime(0.12, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            osc.start(time);
+            osc.stop(time + 0.2);
+        } else if (type === 'metronome_high') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(520, time);
+            gainNode.gain.setValueAtTime(0.035, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            osc.start(time);
+            osc.stop(time + 0.05);
+        } else if (type === 'metronome_low') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(360, time);
+            gainNode.gain.setValueAtTime(0.028, time);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            osc.start(time);
+            osc.stop(time + 0.05);
+        }
+    }
+
+    // --- ゲームステート ---
+    const BPM = 120;
+    const SEC_PER_BEAT = 60 / BPM;
+    const TILT_THRESHOLD = 20;
+
+    let isPlaying = false;
+    let startTime = 0;
+    let currentBeat = 0;
+    let score = 0;
+    let maxScore = 0;
+    let totalGameBeats = 0;
+    let currentDifficultyWindow = 0.25;
+    let nextMetronomeBeat = 1;
+
+    let currentTilt = 0; 
+    let inputDirection = 'center';
+
+    // --- 各デバイスの生入力データ ---
+    let rawGyro = 0;
+    let rawKey = 0; // -1 (左), 0 (中央), 1 (右)
+
+    // キーボードイベント
+    window.addEventListener('keydown', (e) => {
+        if(e.key === 'ArrowLeft') rawKey = -1;
+        if(e.key === 'ArrowRight') rawKey = 1;
+    });
+    window.addEventListener('keyup', (e) => {
+        if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') rawKey = 0;
+    });
+
+    // ジャイロイベント
+    function handleOrientation(event) {
+        let gamma = event.gamma; 
+        if (gamma > 90) gamma = 90;
+        if (gamma < -90) gamma = -90;
+        rawGyro = gamma;
+    }
+
+    // 入力モード選択時 (iOSジャイロ権限の要求)
+    document.querySelectorAll('input[name="inputMode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            if (e.target.value === 'gyro') {
+                if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation);
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientation', handleOrientation);
+                }
+            }
+        });
+    });
+
+    // DOM要素
+    const charContainer = document.getElementById('character-container');
+    const charPupil = document.getElementById('char-pupil');
+
+    // キャラクターの描画更新
+    function updateCharacterTilt() {
+        charContainer.style.transform = `rotate(${currentTilt}deg)`;
+        const pupilX = (currentTilt / 90) * 10;
+        charPupil.style.transform = `translate(calc(-50% + ${pupilX}px), -50%)`;
+    }
+
+    // --- 【新規】システム常駐ループ (入力の一元管理とプレビュー) ---
+    function systemLoop() {
+        requestAnimationFrame(systemLoop);
+
+        // 選択されている入力モードを取得
+        const modeEl = document.querySelector('input[name="inputMode"]:checked');
+        const selectedMode = modeEl ? modeEl.value : 'keyboard';
+
+        // Gamepad API のポーリング
+        const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+        let pad = null;
+        for (let i = 0; i < gamepads.length; i++) {
+            if (gamepads[i]) {
+                pad = gamepads[i];
+                break;
+            }
+        }
+
+        // コントローラ接続ステータスのUI更新
+        const statusEl = document.getElementById('pad-status');
+        if (statusEl) {
+            if (pad) {
+                statusEl.innerText = `🎮 ${pad.id.substring(0, 15)}... 接続済`;
+                statusEl.style.color = 'var(--accent-cyan)';
+            } else {
+                statusEl.innerText = '🎮 未接続 (何かボタンを押してください)';
+                statusEl.style.color = 'var(--accent-pink)';
+            }
+        }
+
+        // モードに応じた傾き値の計算
+        let targetTilt = 0;
+
+        if (selectedMode === 'keyboard') {
+            targetTilt = rawKey * 45; // キーは一気に45度傾ける
+        } else if (selectedMode === 'gyro') {
+            targetTilt = rawGyro;
+        } else if (selectedMode === 'gamepad') {
+            if (pad) {
+                let x = pad.axes[0]; // 左スティックのX軸 (-1.0 〜 1.0)
+                if (Math.abs(x) < 0.15) x = 0; // デッドゾーン(遊び)
+                targetTilt = x * 90; // 角度にマッピング
+            }
+        }
+
+        currentTilt = targetTilt;
+
+        // 判定用の方向をセット
+        if (currentTilt < -TILT_THRESHOLD) {
+            inputDirection = 'left';
+        } else if (currentTilt > TILT_THRESHOLD) {
+            inputDirection = 'right';
+        } else {
+            inputDirection = 'center';
+        }
+
+        updateCharacterTilt();
+    }
+    systemLoop(); // 常にループを回してスタート前でも動くようにする
+
+    // リズムパターン定義
+    const patterns = [
+        { duration: 4, notes: [ {b:1, t:'model', d:'left'}, {b:2, t:'model', d:'right'}, {b:3, t:'player', d:'left'}, {b:4, t:'player', d:'right'} ] },
+        { duration: 4, notes: [ {b:1, t:'model', d:'right'}, {b:2, t:'model', d:'right'}, {b:3, t:'player', d:'right'}, {b:4, t:'player', d:'right'} ] },
+        { duration: 4, notes: [ {b:1, t:'model', d:'left'}, {b:1.5, t:'model', d:'right'}, {b:2, t:'model', d:'left'}, {b:3, t:'player', d:'left'}, {b:3.5, t:'player', d:'right'}, {b:4, t:'player', d:'left'} ] },
+        { duration: 4, notes: [ {b:1, t:'model', d:'left'}, {b:3, t:'player', d:'left'} ] },
+        { duration: 4, notes: [ {b:1, t:'model_hold', d:'right', dur: 1.5}, {b:3, t:'player_hold', d:'right', dur: 1.5} ] },
+        { duration: 4, notes: [ {b:1, t:'model_hold', d:'left', dur: 0.5}, {b:2, t:'model_hold', d:'right', dur: 0.5}, {b:3, t:'player_hold', d:'left', dur: 0.5}, {b:4, t:'player_hold', d:'right', dur: 0.5} ] },
+        { duration: 8, notes: [
+            {b:1, t:'model_hold', d:'left', dur: 1.5}, {b:3, t:'model', d:'right'},
+            {b:5, t:'player_hold', d:'left', dur: 1.5}, {b:7, t:'player', d:'right'}
+        ]},
+        { duration: 8, notes: [
+            {b:1, t:'model_hold', d:'left', dur: 1.5}, {b:3, t:'model_hold', d:'right', dur: 1.5},
+            {b:5, t:'player_hold', d:'left', dur: 1.5}, {b:7, t:'player_hold', d:'right', dur: 1.5}
+        ]},
+        { duration: 8, notes: [
+            {b:1, t:'model', d:'left'}, {b:2, t:'model_hold', d:'right', dur: 1.5},
+            {b:5, t:'player', d:'left'}, {b:6, t:'player_hold', d:'right', dur: 1.5}
+        ]},
+        { duration: 8, notes: [
+            {b:1, t:'model', d:'left'}, {b:2, t:'model', d:'right'}, {b:3, t:'model', d:'left'},
+            {b:5, t:'player', d:'left'}, {b:6, t:'player', d:'right'}, {b:7, t:'player', d:'left'}
+        ]}
+    ];
+
+    const sequence = [];
+
+    function buildSequence() {
+        sequence.length = 0;
+        let currentBeatOffset = 0;
+        maxScore = 0;
+
+        const numPatternTypes = 5;
+        const stagePatternIndices = []; 
+
+        stagePatternIndices.push(0);
+        stagePatternIndices.push(0);
+
+        let lastPattern = 0;
+        for (let i = 1; i < numPatternTypes; i++) {
+            let randIdx;
+            do {
+                randIdx = Math.floor(Math.random() * patterns.length);
+            } while (randIdx === lastPattern);
+            
+            stagePatternIndices.push(randIdx);
+            stagePatternIndices.push(randIdx);
+            
+            lastPattern = randIdx;
+        }
+
+        stagePatternIndices.forEach(idx => {
+            const pat = patterns[idx];
+            pat.notes.forEach(n => {
+                sequence.push({
+                    beat: currentBeatOffset + n.b,
+                    type: n.t,
+                    dir: n.d,
+                    duration: n.dur || 0,
+                    triggered: false,
+                    hit: false,
+                    miss: false,
+                    state: 'waiting'
+                });
+                if (n.t === 'player') maxScore += 100;
+                if (n.t === 'player_hold') maxScore += 200;
+            });
+            currentBeatOffset += pat.duration;
+        });
+
+        totalGameBeats = currentBeatOffset + 2;
+    }
+
+    const startScreen = document.getElementById('start-screen');
+    const startBtn = document.getElementById('start-btn');
+    const charBody = document.getElementById('character-body');
+    const modelInd = document.getElementById('model-indicator');
+    const msgBox = document.getElementById('message-box');
+    const scoreDisplay = document.getElementById('score');
+    const gameContainer = document.getElementById('game-container');
+
+    function startGame() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+        }
+        audioCtx.resume();
+
+        startScreen.style.display = 'none';
+        
+        const selectedDifficulty = document.querySelector('input[name="difficulty"]:checked').value;
+        currentDifficultyWindow = parseFloat(selectedDifficulty);
+
+        score = 0;
+        scoreDisplay.innerText = score;
+        
+        buildSequence(); 
+        
+        const notesLayer = document.getElementById('notes-layer');
+        notesLayer.innerHTML = '';
+        
+        const timelineContainer = document.getElementById('timeline-container');
+        const timelineWidth = timelineContainer.offsetWidth;
+        const pixelsPerBeat = timelineWidth * 0.3;
+        
+        sequence.forEach(s => { 
+            const el = document.createElement('div');
+            if (s.type.includes('hold')) {
+                el.className = `note note-${s.type.replace('_hold', '')} note-${s.dir} note-hold`;
+                const holdWidth = s.duration * pixelsPerBeat;
+                el.style.width = `${Math.max(40, holdWidth)}px`;
+            } else {
+                el.className = `note note-${s.type} note-${s.dir}`;
+            }
+            notesLayer.appendChild(el);
+            s.element = el;
+        });
+        
+        isPlaying = true;
+        startTime = audioCtx.currentTime + 1.0;
+        nextMetronomeBeat = 1;
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function showMessage(text, color, isShake = false) {
+        msgBox.innerText = text;
+        msgBox.style.color = color;
+        msgBox.style.transform = 'scale(1.2)';
+        setTimeout(() => { msgBox.style.transform = 'scale(1)'; }, 100);
+
+        if (isShake) {
+            charBody.classList.add('shake');
+            setTimeout(() => { charBody.classList.remove('shake'); }, 200);
+        }
+    }
+
+    function flashScreen(type) {
+        gameContainer.classList.remove('flash-just', 'flash-miss');
+        void gameContainer.offsetWidth;
+        if(type === 'just') gameContainer.classList.add('flash-just');
+        if(type === 'miss') gameContainer.classList.add('flash-miss');
+    }
+
+    function triggerMiss(note, now) {
+        note.state = 'missed';
+        note.miss = true;
+        playBeep('miss', now);
+        showMessage('MISS...', '#ff4c4c', true);
+        flashScreen('miss');
+        charBody.style.backgroundColor = '#555';
+        setTimeout(() => { charBody.style.backgroundColor = 'var(--char-color)'; }, 300);
+        if(note.element) {
+            note.element.style.backgroundColor = '#555';
+            note.element.style.opacity = '0.5';
+            note.element.style.boxShadow = 'none';
+        }
+    }
+
+    function triggerHit(note, now) {
+        note.state = 'finished';
+        note.hit = true;
+        playBeep('just', now);
+        score += 100;
+        scoreDisplay.innerText = score;
+        showMessage('JUST!!', 'var(--accent-cyan)');
+        flashScreen('just');
+        if(note.element) {
+            note.element.classList.add('hit-effect');
+        }
+    }
+
+    function gameLoop() {
+        if (!isPlaying) return;
+
+        const now = audioCtx.currentTime;
+        const elapsed = now - startTime;
+        currentBeat = elapsed / SEC_PER_BEAT;
+
+        if (currentBeat > totalGameBeats) {
+            finishGame();
+            return;
+        }
+
+        const lookahead = 0.1;
+        while (startTime + nextMetronomeBeat * SEC_PER_BEAT < audioCtx.currentTime + lookahead) {
+            const beatTime = startTime + nextMetronomeBeat * SEC_PER_BEAT;
+            if (nextMetronomeBeat % 4 === 1) {
+                playBeep('metronome_high', beatTime);
+            } else {
+                playBeep('metronome_low', beatTime);
+            }
+            nextMetronomeBeat++;
+            if (nextMetronomeBeat > totalGameBeats) break;
+        }
+
+        const timelineContainer = document.getElementById('timeline-container');
+        const timelineWidth = timelineContainer.offsetWidth;
+        const hitX = timelineWidth * 0.2; 
+        const pixelsPerBeat = timelineWidth * 0.3; 
+
+        for (let i = 0; i < sequence.length; i++) {
+            const note = sequence[i];
+
+            if (note.element) {
+                const beatDiff = note.beat - currentBeat;
+                const tailBeatDiff = (note.beat + note.duration) - currentBeat;
+                
+                if (tailBeatDiff < -1) {
+                    note.element.style.display = 'none';
+                } else if (note.state !== 'missed' && note.state !== 'finished') {
+                    note.element.style.display = 'flex';
+                    const x = hitX + beatDiff * pixelsPerBeat;
+                    note.element.style.left = `${x}px`;
+                    
+                    if (note.state === 'holding') {
+                        note.element.style.boxShadow = `0 0 20px ${note.dir === 'left' ? 'var(--accent-pink)' : 'var(--accent-cyan)'}, inset 0 0 10px #fff`;
+                    }
+                }
+            }
+
+            if (note.type.startsWith('model') && !note.triggered) {
+                if (currentBeat >= note.beat) {
+                    note.triggered = true;
+                    if (note.type === 'model_hold') {
+                        playBeep('model_hold', now, note.duration * SEC_PER_BEAT);
+                    } else {
+                        playBeep('model', now);
+                    }
+                    if(note.element) note.element.classList.add('hit-effect');
+
+                    modelInd.className = '';
+                    void modelInd.offsetWidth;
+                    modelInd.classList.add(note.dir === 'left' ? 'active-left' : 'active-right');
+                    setTimeout(() => { modelInd.className = ''; }, 200);
+                }
+            }
+
+            if (note.type === 'player' && note.state === 'waiting') {
+                const diff = currentBeat - note.beat; 
+                const windowBeats = currentDifficultyWindow;
+
+                if (diff > windowBeats) {
+                    triggerMiss(note, now);
+                } else if (Math.abs(diff) <= windowBeats) {
+                    if (inputDirection === note.dir) triggerHit(note, now);
+                }
+            }
+            
+            if (note.type === 'player_hold' && note.state !== 'finished' && note.state !== 'missed') {
+                const diff = currentBeat - note.beat;
+                const windowBeats = currentDifficultyWindow;
+
+                if (note.state === 'waiting') {
+                    if (diff > windowBeats) {
+                        triggerMiss(note, now);
+                    } else if (Math.abs(diff) <= windowBeats) {
+                        if (inputDirection === note.dir) {
+                            note.state = 'holding';
+                            playBeep('just', now);
+                            score += 50;
+                            scoreDisplay.innerText = score;
+                            showMessage('HOLD...', 'var(--accent-cyan)');
+                        }
+                    }
+                } else if (note.state === 'holding') {
+                    const endBeat = note.beat + note.duration;
+                    const endDiff = currentBeat - endBeat; 
+                    
+                    if (inputDirection !== note.dir) {
+                        if (endDiff < -windowBeats) {
+                            triggerMiss(note, now);
+                        } else if (Math.abs(endDiff) <= windowBeats) {
+                            note.state = 'finished';
+                            note.hit = true;
+                            score += 150;
+                            scoreDisplay.innerText = score;
+                            playBeep('just_high', now);
+                            showMessage('NICE RELEASE!!', 'var(--accent-pink)');
+                            flashScreen('just');
+                            if (note.element) note.element.classList.add('hit-effect');
+                        }
+                    } else {
+                        if (endDiff > windowBeats) triggerMiss(note, now);
+                    }
+                }
+            }
+        }
+        
+        const isAnyHolding = sequence.some(s => s.state === 'holding');
+        if (isAnyHolding && !charBody.classList.contains('holding-state')) {
+            charBody.classList.add('holding-state');
+        } else if (!isAnyHolding && charBody.classList.contains('holding-state')) {
+            charBody.classList.remove('holding-state');
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function finishGame() {
+        isPlaying = false;
+        msgBox.innerText = '';
+        startScreen.style.display = 'flex';
+        startScreen.style.backgroundColor = 'rgba(26, 26, 46, 0.95)'; // リザルト時は暗くする
+        startScreen.innerHTML = `
+            <h1 style="color: var(--accent-cyan); font-size: 2.5rem; margin-bottom: 10px;">リザルト</h1>
+            <p style="font-size: 2rem;">SCORE: ${score} / ${maxScore}</p>
+            <p>${score === maxScore ? 'パーフェクト！重力マスター！' : (score > maxScore * 0.7 ? 'ナイスバランス！' : 'もっと練習しよう！')}</p>
+            <button class="btn" onclick="location.reload()">もう一度遊ぶ</button>
+        `;
+    }
+
+    startBtn.addEventListener('click', startGame);
+
+</script>
+</body>
+</html>

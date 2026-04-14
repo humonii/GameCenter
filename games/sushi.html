@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="game:title" content="寿司キャッチ">
+    <meta name="game:tag" content="Action">
+    <meta name="game:cover" content="sushi">
+    <meta name="game:order" content="40">
+    <meta name="game:emoji" content="🍣">
+    <!-- Launcher は上の meta 情報を見て自動でゲーム一覧を作ります -->
+    <title>Feeling Game | 寿司キャッチ</title>
+    <style>
+        body {
+            background: linear-gradient(#9fe8ff, #dff7ff);
+            color: #333;
+            font-family: 'Hiragino Maru Gothic ProN', 'Rounded M+ 1c', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel {
+            pointer-events: auto;
+            background: rgba(255, 255, 255, 0.96);
+            padding: 30px;
+            border-radius: 22px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+            text-align: center;
+            max-width: 430px;
+            width: 82%;
+        }
+
+        .panel h1 {
+            margin-top: 0;
+            color: #e84a5f;
+            font-size: 1.9rem;
+            line-height: 1.35;
+        }
+
+        .panel p {
+            line-height: 1.7;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+            text-align: left;
+            background: #f3f7fb;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        label {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: #e84a5f;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.15rem;
+            font-weight: bold;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #bb3548;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #bb3548;
+        }
+
+        #status {
+            color: #008080;
+            font-weight: bold;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        #hud {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: none;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 2px 2px 0 #fff;
+            background: rgba(255,255,255,0.72);
+            padding: 12px 14px;
+            border-radius: 16px;
+            line-height: 1.5;
+        }
+
+        #difficulty-bar-wrap {
+            margin-top: 8px;
+            width: 210px;
+            height: 14px;
+            background: rgba(0, 0, 0, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        #difficulty-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #79d98a, #ffd166, #ef476f);
+            border-radius: 999px;
+        }
+
+        #guide {
+            position: absolute;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            font-size: 1rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.78);
+            padding: 10px 16px;
+            border-radius: 16px;
+        }
+    
+        .home-btn { position: fixed; top: 14px; left: 14px; z-index: 200; padding: 10px 14px; border-radius: 999px; text-decoration: none; color: #fff; background: rgba(12, 14, 24, 0.68); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 10px 24px rgba(0,0,0,0.22); backdrop-filter: blur(8px); }
+        .home-btn:hover { filter: brightness(1.08); }
+
+    </style>
+</head>
+<body>
+<a class="home-btn" href="./index.html">← ゲーム選択</a>
+<div id="container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="hud">
+        SCORE: <span id="score-text">0</span><br>
+        COMBO: <span id="combo-text">0</span><br>
+        むずかしさ
+        <div id="difficulty-bar-wrap">
+            <div id="difficulty-bar"></div>
+        </div>
+    </div>
+
+    <div id="guide">🍣 おすしは食べてOK / 🌿 わさびは食べない！</div>
+
+    <div id="ui-layer">
+        <div class="panel" id="start-panel">
+            <h1>🍣 おすしパクパク！<br>わさびに注意！</h1>
+            <p>
+                左右から流れてくるおすしをタイミングよくパクッ！<br>
+                でも、<strong>わさびは食べちゃダメ！</strong><br>
+                食べると辛くて、顔が変わっちゃうよ！
+            </p>
+
+            <div class="input-group">
+                <label><input type="radio" name="inputMode" value="keyboard" checked> ⌨️ キーボード (矢印 / AD)</label>
+                <label><input type="radio" name="inputMode" value="gamepad"> 🎮 ゲームパッド (左スティック)</label>
+                <label><input type="radio" name="inputMode" value="gyro"> 📱 スマホ傾き (ジャイロ)</label>
+            </div>
+
+            <div id="status">ゲームパッド未接続</div>
+            <button class="btn" id="start-btn">スタート！</button>
+        </div>
+
+        <div class="panel" id="result-panel" style="display:none;">
+            <h1>ゲームクリア！</h1>
+            <h2 id="final-score" style="font-size:2.5rem;color:#e84a5f;margin:10px 0;">0</h2>
+            <p id="evaluation">いいリズム！</p>
+            <button class="btn" id="retry-btn" style="margin-top:20px;">タイトルへ戻る</button>
+        </div>
+    </div>
+</div>
+
+<script>
+class InputManager {
+    constructor() {
+        this.mode = 'keyboard';
+        this.axisX = 0;
+        this.prevAxisX = 0;
+        this.rawKey = { x: 0 };
+        this.rawGyro = { x: 0 };
+        this.gamepadConnected = false;
+        this.triggerLeft = false;
+        this.triggerRight = false;
+        this.initEvents();
+    }
+
+    initEvents() {
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this.rawKey.x = -1;
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this.rawKey.x = 1;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (
+                e.key === 'ArrowLeft' ||
+                e.key === 'ArrowRight' ||
+                e.key.toLowerCase() === 'a' ||
+                e.key.toLowerCase() === 'd'
+            ) {
+                this.rawKey.x = 0;
+            }
+        });
+
+        window.addEventListener('deviceorientation', (e) => {
+            const gamma = e.gamma || 0;
+            this.rawGyro.x = Math.max(-45, Math.min(45, gamma)) / 45;
+        });
+    }
+
+    requestGyroPermission() {
+        if (
+            typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function'
+        ) {
+            DeviceOrientationEvent.requestPermission()
+                .then(state => {
+                    if (state === 'granted') console.log('ジャイロ許可取得');
+                })
+                .catch(console.error);
+        }
+    }
+
+    update() {
+        let pad = null;
+
+        if (navigator.getGamepads) {
+            const gamepads = navigator.getGamepads();
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) {
+                    pad = gamepads[i];
+                    this.gamepadConnected = true;
+                    break;
+                }
+            }
+            if (!pad) this.gamepadConnected = false;
+        }
+
+        let targetX = 0;
+
+        if (this.mode === 'keyboard') {
+            targetX = this.rawKey.x;
+        } else if (this.mode === 'gyro') {
+            targetX = this.rawGyro.x;
+        } else if (this.mode === 'gamepad' && pad) {
+            let x = pad.axes[0];
+            const deadzone = 0.2;
+            if (Math.abs(x) < deadzone) x = 0;
+            targetX = x;
+        }
+
+        this.prevAxisX = this.axisX;
+        this.axisX = targetX;
+
+        let currentDir = 0;
+        if (this.axisX <= -0.5) currentDir = -1;
+        else if (this.axisX >= 0.5) currentDir = 1;
+
+        let prevDir = 0;
+        if (this.prevAxisX <= -0.5) prevDir = -1;
+        else if (this.prevAxisX >= 0.5) prevDir = 1;
+
+        this.triggerLeft = currentDir === -1 && prevDir !== -1;
+        this.triggerRight = currentDir === 1 && prevDir !== 1;
+    }
+}
+
+let audioCtx = null;
+
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function tone(type, from, to, gainStart, duration, time) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, time);
+    osc.frequency.linearRampToValueAtTime(to, time + duration);
+    gain.gain.setValueAtTime(gainStart, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(time);
+    osc.stop(time + duration);
+}
+
+function playKick(time) {
+    tone('sine', 160, 40, 0.7, 0.12, time);
+}
+
+function playSnare(time) {
+    tone('square', 320, 160, 0.18, 0.08, time);
+}
+
+function playBeatSound(beatIndex, time) {
+    if (beatIndex % 2 === 0) playKick(time);
+    else playSnare(time);
+}
+
+function playCatchLeft(time, perfect = false) {
+    tone('triangle', perfect ? 500 : 420, perfect ? 620 : 510, perfect ? 0.22 : 0.15, 0.15, time);
+    tone('sine', perfect ? 280 : 240, perfect ? 340 : 280, 0.08, 0.18, time + 0.02);
+}
+
+function playCatchRight(time, perfect = false) {
+    tone('sine',     perfect ? 460 : 400, perfect ? 560 : 480, perfect ? 0.15 : 0.10, 0.15, time);
+    tone('triangle', perfect ? 280 : 240, perfect ? 340 : 290, 0.05, 0.18, time + 0.02);
+}
+
+function playComboSparkle(time) {
+    tone('sine', 900, 1120, 0.07, 0.12, time);
+    tone('triangle', 800, 900, 0.05, 0.10, time + 0.03);
+}
+
+function playMiss(time) {
+    tone('sawtooth', 170, 100, 0.16, 0.20, time);
+}
+
+function playWasabi(time) {
+    tone('square', 380, 180, 0.18, 0.18, time);
+    tone('sawtooth', 250, 120, 0.10, 0.22, time + 0.03);
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const inputManager = new InputManager();
+
+const BPM = 102;
+const SECONDS_PER_BEAT = 60 / BPM;
+const END_BEAT = 38;
+
+let gameState = 'TITLE';
+let startTime = 0;
+let currentRealBeat = 0;
+let nextScheduleBeat = 0;
+let lastTime = performance.now();
+
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let playerActionDir = 0;
+let playerActionTimer = 0;
+let spicyFaceTimer = 0;
+let activeNotes = [];
+let effects = [];
+let particles = [];
+let flashLeft = 0;
+let flashRight = 0;
+
+const sushiKinds = ['maguro', 'salmon', 'egg', 'ebi'];
+
+const MAP_DATA = [
+    { beat: 4, side: -1, type: 'sushi' },
+    { beat: 5, side: 1, type: 'sushi' },
+    { beat: 6, side: -1, type: 'sushi' },
+    { beat: 7, side: 1, type: 'sushi' },
+    { beat: 8, side: -1, type: 'sushi' },
+    { beat: 9, side: 1, type: 'sushi' },
+
+    { beat: 10, side: -1, type: 'sushi' },
+    { beat: 11, side: -1, type: 'sushi' },
+    { beat: 12, side: 1, type: 'sushi' },
+    { beat: 13, side: 1, type: 'sushi' },
+    { beat: 14, side: -1, type: 'wasabi' },
+    { beat: 15, side: 1, type: 'sushi' },
+    { beat: 16, side: -1, type: 'sushi' },
+
+    { beat: 17, side: 1, type: 'sushi' },
+    { beat: 18, side: -1, type: 'sushi' },
+    { beat: 18.5, side: 1, type: 'sushi' },
+    { beat: 19, side: -1, type: 'sushi' },
+    { beat: 20, side: 1, type: 'wasabi' },
+    { beat: 21, side: -1, type: 'sushi' },
+    { beat: 22, side: 1, type: 'sushi' },
+
+    { beat: 23, side: -1, type: 'sushi' },
+    { beat: 23.5, side: 1, type: 'sushi' },
+    { beat: 24, side: -1, type: 'sushi' },
+    { beat: 24.5, side: 1, type: 'wasabi' },
+    { beat: 25, side: -1, type: 'sushi' },
+    { beat: 25.5, side: -1, type: 'sushi' },
+    { beat: 26, side: 1, type: 'sushi' },
+    { beat: 26.5, side: 1, type: 'sushi' },
+    { beat: 27, side: -1, type: 'sushi' },
+    { beat: 28, side: 1, type: 'sushi' },
+    { beat: 29, side: -1, type: 'wasabi' },
+
+    { beat: 30, side: 1, type: 'sushi' },
+    { beat: 30.5, side: -1, type: 'sushi' },
+    { beat: 31, side: 1, type: 'sushi' },
+    { beat: 31.5, side: -1, type: 'sushi' },
+    { beat: 32, side: 1, type: 'sushi' },
+    { beat: 32.5, side: 1, type: 'wasabi' },
+    { beat: 33, side: -1, type: 'sushi' },
+    { beat: 33.5, side: 1, type: 'sushi' },
+    { beat: 34, side: -1, type: 'sushi' },
+    { beat: 34.5, side: 1, type: 'sushi' },
+    { beat: 35, side: -1, type: 'sushi' },
+    { beat: 36, side: 1, type: 'sushi' }
+];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function startGame() {
+    initAudio();
+    gameState = 'PLAYING';
+
+    document.getElementById('start-panel').style.display = 'none';
+    document.getElementById('result-panel').style.display = 'none';
+    document.getElementById('hud').style.display = 'block';
+    document.getElementById('guide').style.display = 'block';
+
+    score = 0;
+    combo = 0;
+    maxCombo = 0;
+    currentRealBeat = 0;
+    nextScheduleBeat = 0;
+    playerActionDir = 0;
+    playerActionTimer = 0;
+    spicyFaceTimer = 0;
+    effects = [];
+    particles = [];
+    flashLeft = 0;
+    flashRight = 0;
+
+    activeNotes = MAP_DATA.map((n, i) => ({
+        ...n,
+        hit: false,
+        sushiKind: sushiKinds[i % sushiKinds.length]
+    }));
+
+    startTime = audioCtx.currentTime + 0.6;
+}
+
+function endGame() {
+    gameState = 'RESULT';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('guide').style.display = 'none';
+    document.getElementById('result-panel').style.display = 'block';
+    document.getElementById('final-score').innerText = score;
+
+    let evalText = 'いいリズム！';
+    if (score >= 2800) evalText = 'おすしマスター！！';
+    else if (score >= 2100) evalText = 'かなりうまい！';
+    else if (score >= 1400) evalText = 'いい感じ！';
+    else evalText = 'もう少しでバッチリ！';
+
+    document.getElementById('evaluation').innerText = `${evalText}（最大コンボ ${maxCombo}）`;
+}
+
+function addEffect(text, side, color) {
+    const xBase = side === 0 ? canvas.width / 2 : canvas.width / 2 + side * 120;
+    effects.push({
+        text,
+        x: xBase,
+        y: canvas.height / 2 - 95,
+        life: 0.8,
+        color
+    });
+}
+
+function addBurst(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.45;
+        const speed = 80 + Math.random() * 120;
+        particles.push({
+            x,
+            y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 20,
+            life: 0.6 + Math.random() * 0.35,
+            size: 4 + Math.random() * 6,
+            color
+        });
+    }
+}
+
+function registerSushiHit(side, judge, note) {
+    note.hit = judge;
+
+    const cx = canvas.width / 2 + side * 60;
+    const cy = canvas.height / 2 - 10;
+
+    if (judge === 'perfect') {
+        score += 100 + Math.min(40, combo * 2);
+        combo++;
+        addEffect('PERFECT!', side, '#FFD700');
+        addBurst(cx, cy, side === -1 ? '#93d7ff' : '#ffb0c8', 12);
+
+        if (side === -1) {
+            playCatchLeft(audioCtx.currentTime, true);
+            flashLeft = 0.28;
+        } else {
+            playCatchRight(audioCtx.currentTime, true);
+            flashRight = 0.28;
+        }
+    } else {
+        score += 60 + Math.min(20, combo);
+        combo++;
+        addEffect('GOOD!', side, side === -1 ? '#43a5ff' : '#ff6fae');
+        addBurst(cx, cy, side === -1 ? '#cbeeff' : '#ffd7e6', 8);
+
+        if (side === -1) {
+            playCatchLeft(audioCtx.currentTime, false);
+            flashLeft = 0.18;
+        } else {
+            playCatchRight(audioCtx.currentTime, false);
+            flashRight = 0.18;
+        }
+    }
+
+    if (combo > maxCombo) maxCombo = combo;
+
+    if (combo > 0 && combo % 5 === 0) {
+        addEffect(`COMBO x${combo}!`, 0, '#7c4dff');
+        addBurst(canvas.width / 2, canvas.height / 2 - 80, '#fff176', 18);
+        playComboSparkle(audioCtx.currentTime);
+    }
+}
+
+function eatWasabi(side, note) {
+    note.hit = 'bad';
+    score = Math.max(0, score - 80);
+    combo = 0;
+    spicyFaceTimer = 1.0;
+    addEffect('からい!!', side, '#3ca34d');
+    addBurst(canvas.width / 2 + side * 60, canvas.height / 2 - 10, '#8fdc72', 14);
+    playWasabi(audioCtx.currentTime);
+}
+
+function updateGame(dt) {
+    if (!audioCtx) return;
+
+    currentRealBeat = (audioCtx.currentTime - startTime) / SECONDS_PER_BEAT;
+
+    while (nextScheduleBeat < currentRealBeat + 1.0) {
+        const timeToPlay = startTime + nextScheduleBeat * SECONDS_PER_BEAT;
+        if (timeToPlay >= audioCtx.currentTime && nextScheduleBeat <= END_BEAT) {
+            playBeatSound(nextScheduleBeat, timeToPlay);
+        }
+        nextScheduleBeat++;
+    }
+
+    if (currentRealBeat > END_BEAT + 3) {
+        endGame();
+        return;
+    }
+
+    if (playerActionTimer > 0) playerActionTimer -= dt;
+    else playerActionDir = 0;
+
+    if (spicyFaceTimer > 0) spicyFaceTimer -= dt;
+
+    flashLeft = Math.max(0, flashLeft - dt);
+    flashRight = Math.max(0, flashRight - dt);
+
+    if (inputManager.triggerLeft || inputManager.triggerRight) {
+        const inputSide = inputManager.triggerLeft ? -1 : 1;
+        playerActionDir = inputSide;
+        playerActionTimer = 0.22;
+
+        let closestNote = null;
+        let minDiff = 999;
+
+        for (const note of activeNotes) {
+            if (!note.hit && note.side === inputSide) {
+                const diff = Math.abs(note.beat - currentRealBeat);
+                if (diff < minDiff && diff < 0.48) {
+                    minDiff = diff;
+                    closestNote = note;
+                }
+            }
+        }
+
+        if (closestNote) {
+            if (closestNote.type === 'wasabi') {
+                eatWasabi(inputSide, closestNote);
+            } else {
+                if (minDiff <= 0.17) registerSushiHit(inputSide, 'perfect', closestNote);
+                else registerSushiHit(inputSide, 'good', closestNote);
+            }
+        }
+    }
+
+    for (const note of activeNotes) {
+        if (!note.hit && currentRealBeat - note.beat > 0.42) {
+            if (note.type === 'sushi') {
+                note.hit = 'miss';
+                combo = 0;
+                addEffect('MISS...', note.side, '#ff5f5f');
+                playMiss(audioCtx.currentTime);
+            } else {
+                note.hit = 'safe';
+                addEffect('セーフ!', note.side, '#4caf50');
+            }
+        }
+    }
+
+    for (let i = effects.length - 1; i >= 0; i--) {
+        effects[i].y -= dt * 58;
+        effects[i].life -= dt;
+        if (effects[i].life <= 0) effects.splice(i, 1);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 240 * dt;
+        p.life -= dt;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    document.getElementById('score-text').innerText = score;
+    document.getElementById('combo-text').innerText = combo;
+
+    const difficulty = Math.min(1, Math.max(0, (currentRealBeat - 4) / (END_BEAT - 4)));
+    document.getElementById('difficulty-bar').style.width = `${difficulty * 100}%`;
+}
+
+function roundRectPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+function drawBackground(cx, cy) {
+    ctx.fillStyle = '#b6ecff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const pulse = Math.abs(Math.sin(currentRealBeat * Math.PI)) * 0.14;
+    ctx.fillStyle = `rgba(255,255,255,${0.08 + pulse})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = `rgba(100, 180, 255, ${0.10 + flashLeft * 0.85})`;
+    ctx.fillRect(0, cy - 90, cx - 50, 180);
+
+    ctx.fillStyle = `rgba(255, 140, 190, ${0.10 + flashRight * 0.85})`;
+    ctx.fillRect(cx + 50, cy - 90, canvas.width - (cx + 50), 180);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.82)';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 120);
+    ctx.lineTo(cx, cy + 120);
+    ctx.stroke();
+}
+
+function drawPlayer(cx, cy) {
+    const beat = gameState === 'PLAYING'
+        ? currentRealBeat
+        : performance.now() / 1000 * (BPM / 60);
+
+    const bounce = Math.abs(Math.sin(beat * Math.PI)) * 15;
+    const y = cy - bounce;
+
+    ctx.fillStyle = spicyFaceTimer > 0 ? '#ffc4b3' : '#FFDAB9';
+    ctx.beginPath();
+    ctx.arc(cx, y, 70, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = '#333';
+    ctx.stroke();
+
+    ctx.fillStyle = spicyFaceTimer > 0
+        ? 'rgba(255, 90, 90, 0.55)'
+        : `rgba(255, 105, 180, ${Math.min(0.8, combo * 0.04 + 0.18)})`;
+
+    ctx.beginPath();
+    ctx.arc(cx - 35, y + 10, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(cx + 35, y + 10, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#333';
+
+    if (spicyFaceTimer > 0) {
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+        ctx.moveTo(cx - 34, y - 12);
+        ctx.lineTo(cx - 18, y - 2);
+        ctx.moveTo(cx - 18, y - 12);
+        ctx.lineTo(cx - 34, y - 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx + 18, y - 12);
+        ctx.lineTo(cx + 34, y - 2);
+        ctx.moveTo(cx + 34, y - 12);
+        ctx.lineTo(cx + 18, y - 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#b12a2a';
+        ctx.beginPath();
+        ctx.moveTo(cx - 18, y + 28);
+        ctx.quadraticCurveTo(cx, y + 12, cx + 18, y + 28);
+        ctx.stroke();
+
+        ctx.fillStyle = '#4fc3f7';
+        ctx.beginPath();
+        ctx.arc(cx + 48, y + 2, 7, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (playerActionDir === 0) {
+        ctx.beginPath();
+        ctx.arc(cx - 25, y - 15, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx + 25, y - 15, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, y + 20, 5, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        const dir = playerActionDir;
+
+        ctx.beginPath();
+        ctx.arc(cx + dir * 15 - 12, y - 15, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx + dir * 15 + 12, y - 15, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        const mouthOpen = Math.sin((playerActionTimer / 0.22) * Math.PI) * 26;
+        ctx.fillStyle = '#e84a5f';
+        ctx.beginPath();
+        if (dir === -1) {
+            ctx.moveTo(cx - 10, y + 20);
+            ctx.lineTo(cx - 60, y + 20 - mouthOpen);
+            ctx.lineTo(cx - 60, y + 20 + mouthOpen);
+        } else {
+            ctx.moveTo(cx + 10, y + 20);
+            ctx.lineTo(cx + 60, y + 20 - mouthOpen);
+            ctx.lineTo(cx + 60, y + 20 + mouthOpen);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.stroke();
+    }
+}
+
+function drawSushi(x, y, kind, scale = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2.5;
+    roundRectPath(-30, -10, 60, 24, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    if (kind === 'maguro') {
+        ctx.fillStyle = '#d94256';
+        roundRectPath(-28, -22, 56, 16, 9);
+        ctx.fill();
+    } else if (kind === 'salmon') {
+        ctx.fillStyle = '#ff8d5c';
+        roundRectPath(-28, -22, 56, 16, 9);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 2;
+        for (let i = -18; i <= 18; i += 12) {
+            ctx.beginPath();
+            ctx.moveTo(i, -21);
+            ctx.lineTo(i + 8, -7);
+            ctx.stroke();
+        }
+    } else if (kind === 'egg') {
+        ctx.fillStyle = '#ffd94d';
+        roundRectPath(-28, -22, 56, 16, 9);
+        ctx.fill();
+        ctx.fillStyle = '#222';
+        roundRectPath(-7, -24, 14, 28, 4);
+        ctx.fill();
+    } else if (kind === 'ebi') {
+        ctx.fillStyle = '#ffb4a2';
+        roundRectPath(-28, -22, 56, 16, 9);
+        ctx.fill();
+        ctx.strokeStyle = '#ff8f7a';
+        ctx.lineWidth = 2;
+        for (let i = -20; i <= 20; i += 10) {
+            ctx.beginPath();
+            ctx.moveTo(i, -20);
+            ctx.lineTo(i + 4, -8);
+            ctx.stroke();
+        }
+    }
+
+    ctx.restore();
+}
+
+function drawWasabi(x, y, scale = 1) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+
+    ctx.fillStyle = '#6bbf59';
+    ctx.beginPath();
+    ctx.moveTo(-18, 10);
+    ctx.quadraticCurveTo(-22, -4, -10, -10);
+    ctx.quadraticCurveTo(-2, -24, 8, -10);
+    ctx.quadraticCurveTo(18, -14, 20, 0);
+    ctx.quadraticCurveTo(24, 14, 8, 16);
+    ctx.quadraticCurveTo(-4, 22, -18, 10);
+    ctx.fill();
+
+    ctx.fillStyle = '#86d86e';
+    ctx.beginPath();
+    ctx.arc(-4, -2, 4, 0, Math.PI * 2);
+    ctx.arc(8, 1, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#3f7e37';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, -30, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#3f7e37';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#3f7e37';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('!', 0, -30);
+
+    ctx.restore();
+}
+
+function drawNotes(cx, cy) {
+    for (const note of activeNotes) {
+        if (note.hit && note.hit !== 'safe') continue;
+        if (note.hit === 'safe') continue;
+
+        const distanceBeat = note.beat - currentRealBeat;
+        if (distanceBeat > -1 && distanceBeat < 4) {
+            const speed = Math.min(canvas.width / 2, 430);
+            const x = cx + note.side * distanceBeat * speed;
+            const near = Math.max(0, 1 - Math.abs(distanceBeat) / 4);
+            const scale = 0.82 + near * 0.28;
+
+            if (note.type === 'sushi') {
+                drawSushi(x, cy, note.sushiKind, scale);
+            } else {
+                drawWasabi(x, cy, scale);
+            }
+
+            if (Math.abs(distanceBeat) < 0.3) {
+                ctx.beginPath();
+                ctx.strokeStyle = note.type === 'wasabi'
+                    ? 'rgba(90, 190, 90, 0.45)'
+                    : note.side === -1
+                        ? 'rgba(90,169,255,0.45)'
+                        : 'rgba(255,111,177,0.45)';
+                ctx.lineWidth = 8;
+                ctx.arc(cx + note.side * 55, cy, 38, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+    }
+}
+
+function drawEffects() {
+    for (const e of effects) {
+        ctx.globalAlpha = Math.max(0, e.life / 0.8);
+        ctx.fillStyle = e.color;
+        ctx.font = 'bold 34px "Hiragino Maru Gothic ProN", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(e.text, e.x, e.y);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#fff';
+        ctx.strokeText(e.text, e.x, e.y);
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawParticles() {
+    for (const p of particles) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+}
+
+function draw() {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+
+    drawBackground(cx, cy);
+
+    if (gameState === 'PLAYING' || gameState === 'TITLE') {
+        drawPlayer(cx, cy);
+        if (gameState === 'PLAYING') drawNotes(cx, cy);
+    }
+
+    drawParticles();
+    drawEffects();
+
+    ctx.font = 'bold 24px "Hiragino Maru Gothic ProN", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(70,130,200,0.65)';
+    ctx.fillText('LEFT', cx - 180, cy - 120);
+    ctx.fillStyle = 'rgba(220,90,150,0.65)';
+    ctx.fillText('RIGHT', cx + 180, cy - 120);
+}
+
+function gameLoop() {
+    const now = performance.now();
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
+
+    inputManager.update();
+
+    if (gameState === 'PLAYING') {
+        updateGame(dt);
+    } else {
+        const statusEl = document.getElementById('status');
+        if (inputManager.gamepadConnected) {
+            statusEl.innerText = '🎮 ゲームパッド接続済';
+            statusEl.style.color = '#008080';
+        } else {
+            statusEl.innerText = 'ゲームパッド未接続 (何かボタンを押してください)';
+            statusEl.style.color = '#e94560';
+        }
+    }
+
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+document.querySelectorAll('input[name="inputMode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        inputManager.mode = e.target.value;
+        if (inputManager.mode === 'gyro') inputManager.requestGyroPermission();
+    });
+});
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+document.getElementById('retry-btn').addEventListener('click', () => {
+    document.getElementById('result-panel').style.display = 'none';
+    document.getElementById('start-panel').style.display = 'block';
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('guide').style.display = 'none';
+    document.getElementById('difficulty-bar').style.width = '0%';
+    gameState = 'TITLE';
+});
+
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
