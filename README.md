@@ -24,7 +24,8 @@ https://github.com/user-attachments/assets/f44582af-137e-4306-af4b-946283200c92
 ---
 # 開発の仕方
 ## GeminiやGPTに投げる方法
-1. game-templete.htmlを入力する
-2. 所望の仕様のゲームのプロンプトを送信する
-3. htmlファイルはgamesに、ゲームで使用するアセットはassetに格納する
-4. index.htmlはgameフォルダのhtmlをゲームとして認識する。
+1. `game-template.html` と `AI-GAME-PROMPT-TEMPLATE.md` を AI に渡す
+2. 作りたいゲーム仕様を追記して送信する
+3. 生成した HTML は `games/` に、必要なアセットは `asset/` または `games/assets/` に格納する
+4. ローカルサーバーで開く場合は、現在の `games/` フォルダを自動検出する
+5. `file://` で直接開く場合は、初回だけ `Game（games）フォルダ` を選ぶと、次回以降は自動で同じフォルダを開く

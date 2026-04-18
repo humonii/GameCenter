@@ -313,6 +313,29 @@ function spawnWave() {
     });
 }
 
+function getCollisionBox(car, extraX = 0) {
+    const insetX = car.w * 0.06;
+    const insetTop = car.h * 0.05;
+    const insetBottom = car.h * 0.07;
+    return {
+        x: car.x + insetX - extraX,
+        y: car.y + insetTop,
+        w: car.w - insetX * 2 + extraX * 2,
+        h: car.h - insetTop - insetBottom
+    };
+}
+
+function boxesOverlap(a, b) {
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function carsCollide(playerCar, enemyCar) {
+    const swayPadding = Math.min(playerCar.w * 0.08, Math.abs(player.vx) * 0.55);
+    const playerBox = getCollisionBox(playerCar, swayPadding);
+    const enemyBox = getCollisionBox(enemyCar, enemyCar.w * 0.015);
+    return boxesOverlap(playerBox, enemyBox);
+}
+
 function update() {
     input.update();
     
@@ -358,13 +381,8 @@ function update() {
         let e = enemies[i];
         e.y += e.speed;
 
-        // 衝突判定 (少し小さめにしてギリギリ避けられるように)
-        const padX = player.w * 0.15;
-        const padY = player.h * 0.1;
-        if (player.x + padX < e.x + e.w - padX && 
-            player.x + player.w - padX > e.x + padX &&
-            player.y + padY < e.y + e.h - padY && 
-            player.y + player.h - padY > e.y + padY) {
+        // 衝突判定（見た目に近い少し大きめの当たり判定）
+        if (carsCollide(player, e)) {
             sfx.crash();
             isPlaying = false;
             document.getElementById('prep-screen').style.display = 'flex';
