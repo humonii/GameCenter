@@ -1,31 +1,36 @@
-# Feelingを用いたリハ・レク用のゲーム
-## 使い方（ソフトウェアの設定）
-1. クローンする
-   
-`git clone git@github.com:humonii/GameCenter.git`
+# Feeling GameCenter
 
-3. index.htmlをブラウザ上で開く
+完成版です。起動は **`start_game_center.bat`**（Windows）または **`start_game_center.command`**（macOS）を使ってください。
 
----
-### ゲームを選択する
+## 使い方
 
+1. ZIP を展開
+2. `start_game_center.bat` / `start_game_center.command` を実行
+3. ブラウザが開いたら、そのままゲームを選択
 
-https://github.com/user-attachments/assets/f44582af-137e-4306-af4b-946283200c92
+## この版の仕様
 
+- ローカルサーバー経由で起動します
+- `games` フォルダへの **追加 / 削除** が選択画面へ自動反映されます
+- `file://` で HTML を直接開いた場合は、追加 / 削除の自動反映は行いません
+- 直接開いた場合でも、ランチャー右下のボタンから `games` フォルダを開けばライブ反映できます
 
+## 今回の修正
 
+- **スカイリボン・ライズ**
+  - 音まわりを安全側に修正
+  - 音声初期化や再生エラーが出た場合は、音だけ自動停止してゲーム本体は継続するように変更
+  - リザルト画面・タブ非表示・終了時に音を確実に停止するように修正
 
----
-## 使い方（ハードウェアの設定）
-1. Feelingを起動する
-2. Feelingソフトを起動する
-3. Feeling for GAMESを接続する
+- **ゲーム選択画面**
+  - 起動スクリプト専用のライブ一覧 API を追加
+  - `games` フォルダの追加 / 削除を自動反映
+  - 直接 HTML を開いたときは、誤解しやすい古い一覧を出さず、起動方法の案内を出すように変更
 
----
-# 開発の仕方
-## GeminiやGPTに投げる方法
-1. `game-template.html` と `AI-GAME-PROMPT-TEMPLATE.md` を AI に渡す
-2. 作りたいゲーム仕様を追記して送信する
-3. 生成した HTML は `games/` に、必要なアセットは `asset/` または `games/assets/` に格納する
-4. ローカルサーバーで開く場合は、現在の `games/` フォルダを自動検出する
-5. `file://` で直接開く場合は、初回だけ `Game（games）フォルダ` を選ぶと、次回以降は自動で同じフォルダを開く
+## 同梱ファイル
+
+- `start_game_center.py` : ローカルサーバー起動
+- `start_game_center.bat` / `start_game_center.command` : 起動用
+- `games/` : 実ゲーム本体
+- `asset/` : クイズ用データ
+

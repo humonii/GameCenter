@@ -156,6 +156,12 @@ const HANDLE_DB_NAME = 'feeling-game-launcher-db';
 const HANDLE_STORE_NAME = 'settings';
 const HANDLE_KEY = 'games-dir-handle';
 const DIRECTORY_PICKER_ID = 'feeling-game-games-folder';
+const WATCH_INTERVAL_MS = 1000;
+const MANIFEST_GLOBAL_KEY = '__FEELING_GAME_MANIFEST__';
+const MANIFEST_SCRIPT_PATH = './games-manifest.js';
+const MANIFEST_SCRIPT_ID = 'liveGamesManifestScript';
+const MANIFEST_NOTE = 'games-manifest.js を表示しています。付属の watcher を起動すると、games フォルダの追加・削除も自動反映されます。';
+const LIVE_FEED_PATH = '../__gamecenter__/games.json';
 
 const COVER_PRESETS = {
   road: {
@@ -194,6 +200,15 @@ let selectedIndex = 0;
 let animating = false;
 let audioCtx = null;
 const padState = { left:false, right:false, confirm:false };
+
+let currentDirectoryHandle = null;
+let currentDiscoverySource = 'unknown';
+let gamesSignature = '';
+let launcherInfoSignature = '';
+let launcherWatchTimer = 0;
+let launchInProgress = false;
+let renderVersion = 0;
+let manifestReloadPromise = null;
 
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -423,7 +438,7 @@ function selectGame(index, animate = false) {
   selectedIndex = (index + games.length) % games.length;
   renderCarousel();
   const game = games[selectedIndex];
-  if (game) helperText.textContent = `${game.title} / ← → / ↑`;
+  if (game) setSelectionHelper(game);
   if (animate) {
     ensureAudio();
     sfx.move();
@@ -437,18 +452,48 @@ function moveSelection(delta) {
   selectGame(selectedIndex + delta, true);
 }
 
-function launchSelected() {
-  if (animating || !games[selectedIndex]) return;
+async function launchSelected() {
+  if (animating || launchInProgress || !games[selectedIndex]) return;
   const game = games[selectedIndex];
-  let resolved = game.file;
+  launchInProgress = true;
+  startButton.disabled = true;
+  helperText.textContent = `${game.title} を確認しています…`;
+
   try {
-    resolved = new URL(game.file, location.href).href;
-    if (resolved === location.href) return;
-  } catch {}
-  ensureAudio();
-  sfx.launch();
-  helperText.textContent = `${game.title} を起動しています…`;
-  setTimeout(() => { window.location.assign(resolved); }, 180);
+    if (currentDiscoverySource === 'manifest') {
+      const latestManifest = await loadManifestGames({ forceReload:true });
+      const stillListed = latestManifest?.games?.some((item) => item.file === game.file);
+      if (latestManifest && !stillListed) {
+        await renderLauncher({ silent:true, preserveSelection:true, force:true });
+        setLauncherSubNote('選択したゲームが manifest から外れたため一覧を更新しました', 'games-manifest.js の最新状態を反映しました。');
+        return;
+      }
+    }
+
+    const exists = await verifyGameAccessible(game);
+    if (!exists) {
+      await renderLauncher({ silent:true, preserveSelection:true, force:true });
+      if (games.length) {
+        setLauncherSubNote('選択したゲームが見つからなかったため一覧を更新しました', 'Game（games）フォルダの追加・削除は自動監視で反映されます。');
+      }
+      return;
+    }
+
+    let resolved = game.file;
+    try {
+      resolved = new URL(game.file, location.href).href;
+      if (resolved === location.href) return;
+    } catch {}
+    ensureAudio();
+    sfx.launch();
+    helperText.textContent = `${game.title} を起動しています…`;
+    setTimeout(() => { window.location.assign(resolved); }, 180);
+  } finally {
+    window.setTimeout(() => {
+      launchInProgress = false;
+      startButton.disabled = !games[selectedIndex];
+    }, 220);
+  }
 }
 
 function normalizeGame(record) {
@@ -490,10 +535,80 @@ function sortGames(list) {
   return unique.sort((a, b) => a.order - b.order || a.file.localeCompare(b.file, 'ja'));
 }
 
+function getGamesSignature(list) {
+  return JSON.stringify(list.map((game) => ({
+    file: game.file,
+    title: game.title,
+    tag: game.tag,
+    cover: game.cover,
+    coverColor: game.coverColor,
+    emoji: game.emoji,
+    order: game.order
+  })));
+}
+
+function setLauncherSubNote(...parts) {
+  const text = parts
+    .flat()
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' / ');
+  folderHintText.hidden = !text;
+  folderHintText.textContent = text;
+}
+
+function setSelectionHelper(game) {
+  helperText.textContent = game ? `${game.title} / ← → / ↑` : 'ゲームを選んでください';
+}
+
 function setLauncherNote(mainText, subText = '') {
   helperText.textContent = mainText;
-  folderHintText.hidden = !subText;
-  folderHintText.textContent = subText;
+  setLauncherSubNote(subText);
+}
+
+async function verifyGameAccessible(game) {
+  if (!game?.file) return false;
+
+  if (currentDiscoverySource === 'handle' && currentDirectoryHandle) {
+    try {
+      const permission = await getDirectoryPermission(currentDirectoryHandle, false);
+      if (permission !== 'granted') return false;
+      const entry = await currentDirectoryHandle.getFileHandle(game.file);
+      const file = await entry.getFile();
+      return !!file;
+    } catch {
+      return false;
+    }
+  }
+
+  if (location.protocol !== 'file:') {
+    try {
+      const head = await fetch(game.file, { method:'HEAD', cache:'no-store' });
+      if (head.ok) return true;
+    } catch {}
+    try {
+      const probe = await fetch(game.file, { cache:'no-store', headers:{ Range:'bytes=0-0' } });
+      return probe.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function stopLauncherWatch() {
+  if (!launcherWatchTimer) return;
+  clearInterval(launcherWatchTimer);
+  launcherWatchTimer = 0;
+}
+
+function startLauncherWatch() {
+  stopLauncherWatch();
+  launcherWatchTimer = window.setInterval(() => {
+    if (document.hidden || launchInProgress) return;
+    renderLauncher({ silent:true, preserveSelection:true });
+  }, WATCH_INTERVAL_MS);
 }
 
 function setFolderButton(visible, label = 'Game（games）フォルダを開く', disabled = false) {
@@ -586,6 +701,23 @@ async function enumerateGamesFromHandle(handle) {
   }
 }
 
+async function loadLiveGameFeed() {
+  if (location.protocol === 'file:') return null;
+  try {
+    const res = await fetch(LIVE_FEED_PATH, { cache:'no-store' });
+    if (!res.ok) return null;
+    const payload = await res.json();
+    if (!payload || !Array.isArray(payload.games)) return null;
+    return {
+      games: sortGames(payload.games.map(normalizeGame)),
+      generatedAt: String(payload.generatedAt || ''),
+      source: String(payload.source || 'server-feed')
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function discoverFilesFromDirectory() {
   if (location.protocol === 'file:') return [];
   try {
@@ -622,6 +754,52 @@ async function fetchGamesByFiles(files) {
   return sortGames(loaded.filter(Boolean));
 }
 
+function readManifestGames() {
+  const payload = window[MANIFEST_GLOBAL_KEY];
+  if (!payload || !Array.isArray(payload.games)) return null;
+  return {
+    games: sortGames(payload.games.map(normalizeGame)),
+    generatedAt: String(payload.generatedAt || ''),
+    version: String(payload.version || ''),
+    source: String(payload.source || 'manifest')
+  };
+}
+
+async function reloadManifestGames() {
+  if (manifestReloadPromise) return manifestReloadPromise;
+  manifestReloadPromise = new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.id = MANIFEST_SCRIPT_ID;
+    script.src = `${MANIFEST_SCRIPT_PATH}?v=${Date.now()}`;
+    script.async = true;
+    script.onload = () => {
+      const current = readManifestGames();
+      manifestReloadPromise = null;
+      resolve(current);
+    };
+    script.onerror = () => {
+      script.remove();
+      manifestReloadPromise = null;
+      resolve(readManifestGames());
+    };
+    const previous = document.getElementById(MANIFEST_SCRIPT_ID);
+    if (previous) previous.removeAttribute('id');
+    document.head.appendChild(script);
+    if (previous) {
+      previous.remove();
+    }
+  });
+  return manifestReloadPromise;
+}
+
+async function loadManifestGames(options = {}) {
+  const { forceReload = false } = options;
+  const current = readManifestGames();
+  if (current && !forceReload) return current;
+  const reloaded = await reloadManifestGames();
+  return reloaded || current || null;
+}
+
 async function loadGames() {
   const registryGames = loadRegistryGames();
   const storedHandle = await loadStoredDirectoryHandle();
@@ -630,6 +808,20 @@ async function loadGames() {
   let showFolderButton = folderCapable;
   let folderButtonLabel = 'Game（games）フォルダを開く';
 
+  const liveFeed = await loadLiveGameFeed();
+  if (liveFeed) {
+    saveRegistryGames(liveFeed.games.map((game) => ({ ...game, updatedAt:Date.now() })));
+    return {
+      games: liveFeed.games,
+      helper: liveFeed.games.length ? `${liveFeed.games.length} 件のゲームを読み込みました` : '現在の Game（games）フォルダにゲームがありません',
+      note: '起動スクリプトのライブ監視中です。games フォルダへの追加・削除は自動で反映されます。',
+      showFolderButton:false,
+      folderButtonLabel,
+      source:'server-feed',
+      directoryHandle:null
+    };
+  }
+
   const discovered = await discoverFilesFromDirectory();
   if (discovered.length) {
     const serverGames = await fetchGamesByFiles(discovered);
@@ -637,9 +829,11 @@ async function loadGames() {
     return {
       games: serverGames,
       helper: serverGames.length ? `${serverGames.length} 件のゲームを読み込みました` : '現在の Game（games）フォルダにゲームがありません',
-      note: '現在開いている Game（games）フォルダを優先して自動検出しています。HTML を追加・削除すると再読込でそのまま反映されます。',
+      note: '現在開いている Game（games）フォルダを自動監視しています。HTML を追加・削除すると一覧へそのまま反映されます。',
       showFolderButton:false,
-      folderButtonLabel
+      folderButtonLabel,
+      source:'server',
+      directoryHandle:null
     };
   }
 
@@ -650,22 +844,26 @@ async function loadGames() {
       return {
         games: fromHandle.games,
         helper: fromHandle.games.length ? `${fromHandle.games.length} 件のゲームを読み込みました` : '選択した Game（games）フォルダにゲームがありません',
-        note: '保存済みの Game（games）フォルダを直接読んでいます。HTML を追加・削除した状態が、そのまま次回読込に反映されます。',
+        note: '保存済みの Game（games）フォルダを自動監視しています。HTML を追加・削除すると一覧へそのまま反映されます。',
         showFolderButton,
-        folderButtonLabel:'Game（games）フォルダを変更'
+        folderButtonLabel:'Game（games）フォルダを変更',
+        source:'handle',
+        directoryHandle:storedHandle
       };
     }
     folderButtonLabel = 'Game（games）フォルダを変更';
-    note = '保存済みのフォルダ権限を確認できませんでした。必要なら Game（games）フォルダを開き直してください。';
+    note = '保存済みのフォルダ権限を確認できませんでした。';
   }
 
-  if (location.protocol === 'file:' && folderCapable) {
+  if (location.protocol === 'file:') {
     return {
       games: [],
-      helper: 'ローカル起動では初回だけ Game（games）フォルダを開いてください',
-      note: note || 'file:// ではフォルダ一覧を自動取得できないため、1 回だけ Game（games）フォルダを選ぶと、次回以降は自動で同じフォルダを読み込みます。',
-      showFolderButton:true,
-      folderButtonLabel
+      helper: '完成版は start_game_center.bat / start_game_center.command で起動してください',
+      note: note || '直接 file:// で開くと games フォルダの追加・削除を自動反映できません。右下のボタンで games フォルダを開くか、起動スクリプトを使ってください。',
+      showFolderButton:folderCapable,
+      folderButtonLabel,
+      source:'needs-folder',
+      directoryHandle:null
     };
   }
 
@@ -675,29 +873,81 @@ async function loadGames() {
   return {
     games: verifiedGames,
     helper: verifiedGames.length ? `${verifiedGames.length} 件のゲームを読み込みました` : 'Game（games）フォルダにゲームがありません',
-    note: note || (folderCapable
-      ? '既知の HTML を実在確認して表示しています。ローカル配置で追加分も自動反映したい場合は Game（games）フォルダを一度開いてください。'
-      : '既知の HTML を実在確認して表示しています。削除済みファイルは次回読込時に外れます。'),
+    note: note || '既知の HTML を実在確認しつつ監視しています。',
     showFolderButton:folderCapable,
-    folderButtonLabel
+    folderButtonLabel,
+    source:'verified',
+    directoryHandle:null
   };
 }
 
-async function renderLauncher() {
-  setLauncherNote('読み込み中…');
-  startButton.disabled = true;
+async function renderLauncher(options = {}) {
+  const { silent = false, preserveSelection = true, force = false } = options;
+  const currentRenderVersion = ++renderVersion;
+  const previousSelectedFile = preserveSelection ? (games[selectedIndex]?.file || '') : '';
+  const previousSelectedIndex = selectedIndex;
+  const previousGamesSignature = gamesSignature;
+  const previousInfoSignature = launcherInfoSignature;
+
+  if (!silent) {
+    setLauncherNote('読み込み中…');
+    startButton.disabled = true;
+  }
+
   const result = await loadGames();
-  games = result.games;
+  if (currentRenderVersion !== renderVersion) return;
+
+  const nextGamesSignature = getGamesSignature(result.games);
+  const nextInfoSignature = JSON.stringify({
+    helper: result.helper,
+    note: result.note,
+    showFolderButton: result.showFolderButton,
+    folderButtonLabel: result.folderButtonLabel,
+    source: result.source || 'unknown'
+  });
+  const gamesChanged = force || nextGamesSignature !== previousGamesSignature;
+  const infoChanged = force || nextInfoSignature !== previousInfoSignature;
+
+  currentDirectoryHandle = result.directoryHandle || null;
+  currentDiscoverySource = result.source || 'unknown';
   setFolderButton(result.showFolderButton, result.folderButtonLabel, false);
-  if (!games.length) {
+
+  if (silent && !gamesChanged && !infoChanged) return;
+
+  gamesSignature = nextGamesSignature;
+  launcherInfoSignature = nextInfoSignature;
+
+  if (!result.games.length) {
+    games = [];
+    selectedIndex = 0;
     stage.innerHTML = '';
+    startButton.disabled = true;
     setLauncherNote(result.helper, result.note);
     return;
   }
-  buildStage();
-  selectedIndex = 0;
-  selectGame(0, false);
-  setLauncherNote(result.helper, result.note);
+
+  games = result.games;
+  const shouldRebuild = gamesChanged || stage.children.length !== games.length;
+  if (shouldRebuild) {
+    buildStage();
+    let nextIndex = 0;
+    if (previousSelectedFile) {
+      const matchedIndex = games.findIndex((game) => game.file === previousSelectedFile);
+      if (matchedIndex >= 0) nextIndex = matchedIndex;
+      else nextIndex = Math.min(previousSelectedIndex, games.length - 1);
+    }
+    selectedIndex = Math.max(0, Math.min(nextIndex, games.length - 1));
+    selectGame(selectedIndex, false);
+  } else {
+    selectedIndex = Math.max(0, Math.min(selectedIndex, games.length - 1));
+    renderCarousel();
+    startButton.disabled = !games[selectedIndex];
+    if (!silent) setSelectionHelper(games[selectedIndex]);
+  }
+
+  if (!silent || gamesChanged || infoChanged) {
+    setLauncherSubNote(result.helper, result.note);
+  }
 }
 
 async function pickGamesFolder() {
@@ -714,10 +964,10 @@ async function pickGamesFolder() {
       setLauncherNote('Game（games）フォルダの権限が必要です', '追加・削除の同期には読み取り許可を付与してください。');
       return;
     }
-    await renderLauncher();
+    await renderLauncher({ silent:false, preserveSelection:true, force:true });
   } catch (error) {
     if (error?.name !== 'AbortError') {
-      setLauncherNote('Game（games）フォルダを開けませんでした', 'もう一度フォルダを開くか、サーバー配信で開いてください。');
+      setLauncherNote('Game（games）フォルダを開けませんでした', 'もう一度フォルダを開くか、start_game_center.bat / start_game_center.command で起動してください。');
     }
   } finally {
     setFolderButton(!folderButton.hidden, folderButton.textContent || 'gamesフォルダを指定', false);
@@ -762,16 +1012,17 @@ folderButton.addEventListener('click', pickGamesFolder);
 window.addEventListener('pointerdown', () => ensureAudio(), { passive:true });
 window.addEventListener('keydown', handleKeydown);
 window.addEventListener('resize', renderCarousel);
-window.addEventListener('focus', () => { renderLauncher(); });
+window.addEventListener('focus', () => { renderLauncher({ silent:true, preserveSelection:true, force:true }); });
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) renderLauncher();
+  if (!document.hidden) renderLauncher({ silent:true, preserveSelection:true, force:true });
 });
+window.addEventListener('beforeunload', stopLauncherWatch);
 
 (async () => {
-  await renderLauncher();
+  await renderLauncher({ silent:false, preserveSelection:false, force:true });
+  startLauncherWatch();
   requestAnimationFrame(loop);
 })();
-
-</script>
+  </script>
 </body>
 </html>

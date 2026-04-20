@@ -313,27 +313,69 @@ function spawnWave() {
     });
 }
 
-function getCollisionBox(car, extraX = 0) {
-    const insetX = car.w * 0.06;
-    const insetTop = car.h * 0.05;
-    const insetBottom = car.h * 0.07;
-    return {
-        x: car.x + insetX - extraX,
-        y: car.y + insetTop,
-        w: car.w - insetX * 2 + extraX * 2,
-        h: car.h - insetTop - insetBottom
-    };
+function getCarHitPolygon(car, angle = 0, widen = 0) {
+    const centerX = car.x + car.w / 2;
+    const centerY = car.y + car.h / 2;
+    const hitWidth = car.w * 1.08 + widen * 2;
+    const hitHeight = car.h * 0.9;
+    const halfW = hitWidth / 2;
+    const halfH = hitHeight / 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const corners = [
+        { x: -halfW, y: -halfH },
+        { x: halfW, y: -halfH },
+        { x: halfW, y: halfH },
+        { x: -halfW, y: halfH }
+    ];
+
+    return corners.map((point) => ({
+        x: centerX + point.x * cos - point.y * sin,
+        y: centerY + point.x * sin + point.y * cos
+    }));
 }
 
-function boxesOverlap(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+function getPolygonAxes(points) {
+    const axes = [];
+    for (let i = 0; i < points.length; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        const edgeX = b.x - a.x;
+        const edgeY = b.y - a.y;
+        const length = Math.hypot(edgeX, edgeY) || 1;
+        axes.push({ x: -edgeY / length, y: edgeX / length });
+    }
+    return axes;
+}
+
+function projectPolygon(points, axis) {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const point of points) {
+        const projection = point.x * axis.x + point.y * axis.y;
+        if (projection < min) min = projection;
+        if (projection > max) max = projection;
+    }
+    return { min, max };
+}
+
+function polygonsOverlap(a, b) {
+    const axes = [...getPolygonAxes(a), ...getPolygonAxes(b)];
+    for (const axis of axes) {
+        const rangeA = projectPolygon(a, axis);
+        const rangeB = projectPolygon(b, axis);
+        if (rangeA.max < rangeB.min || rangeB.max < rangeA.min) {
+            return false;
+        }
+    }
+    return true;
 }
 
 function carsCollide(playerCar, enemyCar) {
-    const swayPadding = Math.min(playerCar.w * 0.08, Math.abs(player.vx) * 0.55);
-    const playerBox = getCollisionBox(playerCar, swayPadding);
-    const enemyBox = getCollisionBox(enemyCar, enemyCar.w * 0.015);
-    return boxesOverlap(playerBox, enemyBox);
+    const swayPadding = Math.min(playerCar.w * 0.08, Math.abs(player.vx) * 0.45);
+    const playerPolygon = getCarHitPolygon(playerCar, player.vx * 0.03, swayPadding);
+    const enemyPolygon = getCarHitPolygon(enemyCar, 0, enemyCar.w * 0.02);
+    return polygonsOverlap(playerPolygon, enemyPolygon);
 }
 
 function update() {
@@ -387,6 +429,7 @@ function update() {
             isPlaying = false;
             document.getElementById('prep-screen').style.display = 'flex';
             document.getElementById('start-btn').innerText = 'TRY AGAIN';
+            return;
         }
         
         // 画面外削除

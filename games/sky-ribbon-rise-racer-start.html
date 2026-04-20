@@ -941,7 +941,8 @@
       pulseTimer: null,
       stopTimer: null,
       started: false,
-      failed: false
+      failed: false,
+      errorMessage: ''
     };
 
     const inputState = {
@@ -1012,8 +1013,31 @@
 
     function updateSoundToggle() {
       if (!refs.soundToggle) return;
+      const supported = !!(window.AudioContext || window.webkitAudioContext);
+      if (!supported) {
+        refs.soundToggle.textContent = '🔇 音なし';
+        refs.soundToggle.disabled = true;
+        refs.soundToggle.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      if (bgmState.failed) {
+        refs.soundToggle.textContent = '🔇 音エラー';
+        refs.soundToggle.disabled = true;
+        refs.soundToggle.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      refs.soundToggle.disabled = false;
       refs.soundToggle.textContent = bgmState.enabled ? '🔊 音 ON' : '🔈 音 OFF';
       refs.soundToggle.setAttribute('aria-pressed', bgmState.enabled ? 'true' : 'false');
+    }
+
+    function failBgm(error) {
+      bgmState.failed = true;
+      bgmState.enabled = false;
+      bgmState.errorMessage = error?.message || String(error || 'audio error');
+      stopAmbientLoop();
+      updateSoundToggle();
+      return false;
     }
 
     function ensureBgmElement() {
@@ -1021,18 +1045,23 @@
     }
 
     function ensureAudioContext() {
-      const AudioCtor = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtor) return null;
-      if (!bgmState.ctx) {
-        bgmState.ctx = new AudioCtor();
-        bgmState.master = bgmState.ctx.createGain();
-        bgmState.master.gain.value = 0.0001;
-        bgmState.master.connect(bgmState.ctx.destination);
+      try {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor || bgmState.failed) return null;
+        if (!bgmState.ctx) {
+          bgmState.ctx = new AudioCtor();
+          bgmState.master = bgmState.ctx.createGain();
+          bgmState.master.gain.value = 0.0001;
+          bgmState.master.connect(bgmState.ctx.destination);
+        }
+        if (bgmState.ctx.state === 'suspended') {
+          bgmState.ctx.resume().catch(() => {});
+        }
+        return bgmState.ctx;
+      } catch (error) {
+        failBgm(error);
+        return null;
       }
-      if (bgmState.ctx.state === 'suspended') {
-        bgmState.ctx.resume().catch(() => {});
-      }
-      return bgmState.ctx;
     }
 
     function stopAmbientLoop() {
@@ -1049,81 +1078,87 @@
     }
 
     function startAmbientLoop() {
-      const ctx = ensureAudioContext();
-      if (!ctx || !bgmState.master) return false;
-      if (bgmState.stopTimer) {
-        clearTimeout(bgmState.stopTimer);
-        bgmState.stopTimer = null;
+      try {
+        const ctx = ensureAudioContext();
+        if (!ctx || !bgmState.master || bgmState.failed) return false;
+        if (bgmState.stopTimer) {
+          clearTimeout(bgmState.stopTimer);
+          bgmState.stopTimer = null;
+        }
+        if (!bgmState.started) {
+          stopAmbientLoop();
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1040, ctx.currentTime);
+          filter.Q.setValueAtTime(0.9, ctx.currentTime);
+
+          const padGain = ctx.createGain();
+          padGain.gain.setValueAtTime(0.22, ctx.currentTime);
+          const shimmerGain = ctx.createGain();
+          shimmerGain.gain.setValueAtTime(0.07, ctx.currentTime);
+
+          const oscA = ctx.createOscillator();
+          oscA.type = 'triangle';
+          const oscB = ctx.createOscillator();
+          oscB.type = 'sine';
+          const oscC = ctx.createOscillator();
+          oscC.type = 'sine';
+
+          oscA.connect(padGain);
+          oscB.connect(padGain);
+          oscC.connect(shimmerGain);
+          padGain.connect(filter);
+          shimmerGain.connect(filter);
+          filter.connect(bgmState.master);
+
+          const chords = [
+            [196.00, 293.66, 392.00],
+            [220.00, 329.63, 440.00],
+            [174.61, 261.63, 392.00],
+            [246.94, 369.99, 493.88]
+          ];
+          let chordIndex = 0;
+          const shimmerLevels = [0.07, 0.1, 0.08, 0.11];
+          const filterTargets = [1040, 980, 920, 1080];
+          const applyChord = (index, glide = 0.85) => {
+            const [a, b, c] = chords[index % chords.length];
+            oscA.frequency.setTargetAtTime(a, ctx.currentTime, glide);
+            oscB.frequency.setTargetAtTime(b, ctx.currentTime, glide);
+            oscC.frequency.setTargetAtTime(c, ctx.currentTime, glide);
+            shimmerGain.gain.setTargetAtTime(shimmerLevels[index % shimmerLevels.length], ctx.currentTime, 0.9);
+            filter.frequency.setTargetAtTime(filterTargets[index % filterTargets.length], ctx.currentTime, 1.0);
+          };
+          applyChord(0, 0.01);
+          bgmState.pulseTimer = setInterval(() => {
+            try {
+              chordIndex = (chordIndex + 1) % chords.length;
+              applyChord(chordIndex, 1.05);
+            } catch (error) {
+              failBgm(error);
+            }
+          }, 3200);
+
+          oscA.start();
+          oscB.start();
+          oscC.start();
+          bgmState.nodes = [oscA, oscB, oscC, filter, padGain, shimmerGain];
+          bgmState.started = true;
+        }
+        bgmState.master.gain.cancelScheduledValues(ctx.currentTime);
+        bgmState.master.gain.setTargetAtTime(0.045, ctx.currentTime, 0.18);
+        return true;
+      } catch (error) {
+        return failBgm(error);
       }
-      if (!bgmState.started) {
-        stopAmbientLoop();
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(980, ctx.currentTime);
-        filter.Q.setValueAtTime(1.1, ctx.currentTime);
-
-        const padGain = ctx.createGain();
-        padGain.gain.setValueAtTime(0.26, ctx.currentTime);
-        const shimmerGain = ctx.createGain();
-        shimmerGain.gain.setValueAtTime(0.1, ctx.currentTime);
-
-        const oscA = ctx.createOscillator();
-        oscA.type = 'triangle';
-        const oscB = ctx.createOscillator();
-        oscB.type = 'sine';
-        const oscC = ctx.createOscillator();
-        oscC.type = 'sine';
-
-        oscA.connect(padGain);
-        oscB.connect(padGain);
-        oscC.connect(shimmerGain);
-        padGain.connect(filter);
-        shimmerGain.connect(filter);
-        filter.connect(bgmState.master);
-
-        const lfo = ctx.createOscillator();
-        lfo.type = 'sine';
-        lfo.frequency.setValueAtTime(0.09, ctx.currentTime);
-        const lfoGain = ctx.createGain();
-        lfoGain.gain.setValueAtTime(0.015, ctx.currentTime);
-        lfo.connect(lfoGain);
-        lfoGain.connect(bgmState.master.gain);
-
-        const chords = [
-          [196.00, 293.66, 392.00],
-          [220.00, 329.63, 440.00],
-          [174.61, 261.63, 392.00],
-          [246.94, 369.99, 493.88]
-        ];
-        let chordIndex = 0;
-        const applyChord = (index, glide = 0.85) => {
-          const [a, b, c] = chords[index % chords.length];
-          oscA.frequency.setTargetAtTime(a, ctx.currentTime, glide);
-          oscB.frequency.setTargetAtTime(b, ctx.currentTime, glide);
-          oscC.frequency.setTargetAtTime(c, ctx.currentTime, glide);
-        };
-        applyChord(0, 0.01);
-        bgmState.pulseTimer = setInterval(() => {
-          chordIndex = (chordIndex + 1) % chords.length;
-          applyChord(chordIndex, 1.1);
-        }, 3200);
-
-        oscA.start();
-        oscB.start();
-        oscC.start();
-        lfo.start();
-        bgmState.nodes = [oscA, oscB, oscC, lfo, filter, padGain, shimmerGain, lfoGain];
-        bgmState.started = true;
-      }
-      bgmState.master.gain.cancelScheduledValues(ctx.currentTime);
-      bgmState.master.gain.setTargetAtTime(0.05, ctx.currentTime, 0.18);
-      return true;
     }
 
     async function playBgm() {
-      if (!bgmState.enabled) return;
+      if (!bgmState.enabled || bgmState.failed) {
+        updateSoundToggle();
+        return;
+      }
       const started = startAmbientLoop();
-      bgmState.failed = !started;
+      if (!started) failBgm(new Error('BGM start failed'));
       updateSoundToggle();
     }
 
@@ -1148,6 +1183,10 @@
     }
 
     function toggleBgm() {
+      if (bgmState.failed) {
+        updateSoundToggle();
+        return;
+      }
       bgmState.enabled = !bgmState.enabled;
       if (bgmState.enabled) playBgm();
       else pauseBgm();
@@ -1430,6 +1469,7 @@
 
     function returnToIntroSetup() {
       state.mode = 'intro';
+      pauseBgm();
       state.controllerResumeMode = '';
       resetGamepadInputState();
       refs.controllerOverlay.classList.add('hidden');
@@ -1735,6 +1775,7 @@
 
     function finishGame() {
       state.mode = 'result';
+      pauseBgm();
       const rank = computeRank();
       refs.resultSummary.textContent = rankComment(rank);
       refs.rankBadge.textContent = `RANK ${rank}`;
@@ -2311,6 +2352,16 @@
     window.addEventListener('gamepadconnected', refreshControllerSetup);
     window.addEventListener('gamepaddisconnected', refreshControllerSetup);
     document.body.addEventListener('click', () => { navigator.getGamepads?.(); refreshControllerSetup(); }, { passive:true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        pauseBgm();
+        return;
+      }
+      if (!bgmState.failed && bgmState.enabled && (state.mode === 'playing' || state.mode === 'interlude')) {
+        playBgm();
+      }
+    });
+    window.addEventListener('beforeunload', pauseBgm);
 
     requestAnimationFrame(loop);
   </script>
