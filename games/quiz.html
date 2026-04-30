@@ -382,6 +382,10 @@
         this.lastPadButtons = [];
         this.lastPadDir = 0;
         this.deadzone = 0.25;
+        // URLから指定されたゲームパッドインデックスを取得
+        const params = new URLSearchParams(location.search);
+        this.targetGamepadIndex = params.has('gamepad') ? parseInt(params.get('gamepad')) : -1;
+        console.log(`🎮 ゲームパッドインデックス: ${this.targetGamepadIndex}`);
         this.bind();
       }
       bind() {
@@ -437,7 +441,14 @@
       updateGamepad() {
         const pads = navigator.getGamepads ? navigator.getGamepads() : [];
         let pad = null;
-        for (const p of pads) if (p) { pad = p; break; }
+        
+        // 指定されたゲームパッドを優先的に使用
+        if (this.targetGamepadIndex >= 0 && this.targetGamepadIndex < pads.length) {
+          pad = pads[this.targetGamepadIndex];
+        } else {
+          // フォールバック: 最初に接続されているゲームパッドを使用
+          for (const p of pads) if (p) { pad = p; break; }
+        }
         if (!pad) {
           this.gamepadConnected = false;
           this.padInfo = '未接続';

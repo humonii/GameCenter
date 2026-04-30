@@ -124,6 +124,10 @@ class InputManager {
         this.rawKey = { x: 0 };
         this.rawGyro = { x: 0 };
         this.gamepadConnected = false;
+        // URLから指定されたゲームパッドインデックスを取得
+        const params = new URLSearchParams(location.search);
+        this.targetGamepadIndex = params.has('gamepad') ? parseInt(params.get('gamepad')) : -1;
+        console.log(`🎮 ゲームパッドインデックス: ${this.targetGamepadIndex}`);
         this.initEvents();
     }
 
@@ -151,10 +155,16 @@ class InputManager {
         let pad = null;
         if (navigator.getGamepads) {
             const gamepads = navigator.getGamepads();
-            for (let i = 0; i < gamepads.length; i++) {
-                if (gamepads[i]) { pad = gamepads[i]; this.gamepadConnected = true; break; }
+            // 指定されたゲームパッドを優先的に使用
+            if (this.targetGamepadIndex >= 0 && this.targetGamepadIndex < gamepads.length) {
+                pad = gamepads[this.targetGamepadIndex];
+            } else {
+                // フォールバック: 最初に接続されているゲームパッドを使用
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) { pad = gamepads[i]; break; }
+                }
             }
-            if (!pad) this.gamepadConnected = false;
+            this.gamepadConnected = pad !== null;
         }
 
         let targetX = 0;
@@ -162,7 +172,7 @@ class InputManager {
         else if (this.mode === 'gyro') targetX = this.rawGyro.x;
         else if (this.mode === 'gamepad' && pad) {
             let x = pad.axes[0];
-            targetX = Math.abs(x) < 0.15 ? 0 : x;
+            targetX = Math.abs(x) < 0.05 ? 0 : x;
         }
         this.axisX = Math.max(-1, Math.min(1, targetX));
     }
@@ -317,9 +327,9 @@ function update() {
     input.update();
     
     // 慣性移動
-    player.vx += input.axisX * (canvas.width * 0.005);
+    player.vx += input.axisX * (canvas.width * 0.003);
     if (steerCooldown > 0) steerCooldown--;
-    const steerSign = input.axisX < -0.35 ? -1 : input.axisX > 0.35 ? 1 : 0;
+    const steerSign = input.axisX < -0.1 ? -1 : input.axisX > 0.1 ? 1 : 0;
     if (steerSign !== 0 && steerSign !== lastSteerSign && steerCooldown <= 0) { sfx.steer(); steerCooldown = 10; }
     lastSteerSign = steerSign; 
     player.vx *= 0.88;
