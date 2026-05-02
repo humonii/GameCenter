@@ -117,6 +117,146 @@
       .launch-btn,.folder-btn{width:100%;padding:11px 18px}
     }
     @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+    .gamepad-monitor{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:20px;
+      padding:12px 16px;
+      background:linear-gradient(135deg,#f0f4ff,#e8ecf8);
+      border:1px solid var(--line);
+      border-radius:16px;
+      font-size:.9rem;
+    }
+    .monitor-status{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .status-label{
+      font-size:.75rem;
+      color:var(--sub);
+      font-weight:700;
+      letter-spacing:.01em;
+      text-transform:uppercase;
+    }
+    .status-value{
+      font-size:1rem;
+      font-weight:900;
+      color:var(--ink);
+    }
+    .status-value.connected{
+      color:#4caf50;
+    }
+    .status-value.disconnected{
+      color:#9e9e9e;
+    }
+    .joystick-display{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+    }
+    .joystick-canvas{
+      width:110px;
+      height:110px;
+      border:2px solid var(--accent);
+      border-radius:50%;
+      background:#ffffff;
+      box-shadow:inset 0 0 8px rgba(22,35,61,.08);
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .joystick-dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:#23457a;
+      position:absolute;
+      transition:all .05s ease-out;
+      box-shadow:0 2px 8px rgba(35,69,122,.3);
+    }
+    .joystick-center{
+      width:4px;
+      height:4px;
+      border-radius:50%;
+      background:#d9e1ee;
+      position:absolute;
+    }
+    .axis-values{
+      font-size:.8rem;
+      text-align:center;
+      min-width:80px;
+      font-family:monospace;
+      color:var(--sub);
+    }
+    .axis-value-x,.axis-value-y{
+      display:block;
+    }
+    .device-info{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      flex:1;
+      min-width:120px;
+    }
+    .device-label{
+      font-size:.75rem;
+      color:var(--sub);
+      font-weight:700;
+      letter-spacing:.01em;
+      text-transform:uppercase;
+    }
+    .device-name{
+      font-size:.85rem;
+      font-weight:700;
+      color:var(--ink);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:200px;
+    }
+    .gamepad-tabs{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+    .gamepad-tab{
+      padding:6px 12px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#ffffff;
+      color:var(--sub);
+      font-size:.8rem;
+      font-weight:700;
+      cursor:pointer;
+      transition:all .16s ease;
+      white-space:nowrap;
+    }
+    .gamepad-tab:hover{
+      background:var(--bg);
+      border-color:var(--accent);
+    }
+    .gamepad-tab.active{
+      background:var(--accent);
+      color:#fff;
+      border-color:var(--accent);
+    }
+    @media (max-width:720px){
+      .gamepad-monitor{
+        flex-direction:column;
+        gap:12px;
+        padding:10px 12px;
+      }
+      .joystick-canvas{
+        width:90px;
+        height:90px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -129,13 +269,32 @@
       </div>
     </section>
     <div class="bottom-bar">
-      <div class="helper-wrap">
-        <div class="helper" id="helperText">読み込み中…</div>
-        <div class="helper-sub" id="folderHintText" hidden></div>
-      </div>
-      <div class="action-row">
-        <button class="folder-btn" id="folderButton" type="button" hidden>Game（games）フォルダを開く</button>
-        <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+      <div class="helper" id="helperText">読み込み中…</div>
+      <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+    </div>
+    <div class="gamepad-monitor" id="gamepadMonitor" style="display:none">
+      <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+        <div class="gamepad-tabs" id="gamepadTabs"></div>
+        <div style="display:flex;align-items:center;gap:20px;justify-content:center">
+          <div class="monitor-status">
+            <div class="status-label">接続状態</div>
+            <div class="status-value disconnected" id="statusIndicator">未接続</div>
+          </div>
+          <div class="device-info">
+            <div class="device-label">デバイス</div>
+            <div class="device-name" id="deviceName">-</div>
+          </div>
+          <div class="joystick-display">
+            <div class="joystick-canvas">
+              <div class="joystick-center"></div>
+              <div class="joystick-dot" id="joystickDot"></div>
+            </div>
+            <div class="axis-values">
+              <span class="axis-value-x">X: <span id="axisX">0.00</span></span>
+              <span class="axis-value-y">Y: <span id="axisY">0.00</span></span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -190,26 +349,53 @@ const COVER_PRESETS = {
   }
 };
 
-const stage = document.getElementById('carouselStage');
-const helperText = document.getElementById('helperText');
-const folderHintText = document.getElementById('folderHintText');
-const startButton = document.getElementById('startButton');
-const folderButton = document.getElementById('folderButton');
+    const stage = document.getElementById('carouselStage');
+    const helperText = document.getElementById('helperText');
+    const startButton = document.getElementById('startButton');
+    const gamepadMonitor = document.getElementById('gamepadMonitor');
+    const gamepadTabs = document.getElementById('gamepadTabs');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const deviceName = document.getElementById('deviceName');
+    const joystickDot = document.getElementById('joystickDot');
+    const axisX = document.getElementById('axisX');
+    const axisY = document.getElementById('axisY');
 
-let games = [];
-let selectedIndex = 0;
-let animating = false;
-let audioCtx = null;
-const padState = { left:false, right:false, confirm:false };
+    let games = [];
+    let selectedIndex = 0;
+    let animating = false;
+    let audioCtx = null;
+    const padState = { left:false, right:false, confirm:false };
+    const allGamepads = {}; // インデックス => {index, id, x, y}
+    let selectedGamepadIndex = -1;
 
-let currentDirectoryHandle = null;
-let currentDiscoverySource = 'unknown';
-let gamesSignature = '';
-let launcherInfoSignature = '';
-let launcherWatchTimer = 0;
-let launchInProgress = false;
-let renderVersion = 0;
-let manifestReloadPromise = null;
+    // ゲームパッド情報をsessionStorageに保存
+    function saveGamepadState() {
+      const state = {
+        allGamepads: allGamepads,
+        selectedGamepadIndex: selectedGamepadIndex
+      };
+      sessionStorage.setItem('gamepadState', JSON.stringify(state));
+      console.log('💾 ゲームパッド状態を保存しました:', state);
+      console.log('sessionStorage の内容:', sessionStorage.getItem('gamepadState'));
+    }
+
+    // sessionStorageからゲームパッド情報を復元
+    function restoreGamepadState() {
+      try {
+        console.log('🔍 sessionStorage の全内容:', Object.keys(sessionStorage).map(k => `${k}: ${sessionStorage.getItem(k)}`));
+        const saved = sessionStorage.getItem('gamepadState');
+        console.log('📥 gamepadState を取得しました:', saved);
+        if (saved) {
+          const state = JSON.parse(saved);
+          selectedGamepadIndex = state.selectedGamepadIndex;
+          console.log(`📦 ゲームパッド状態を復元: selectedGamepadIndex = ${selectedGamepadIndex}`);
+        } else {
+          console.log('⚠️ sessionStorage に gamepadState がありません');
+        }
+      } catch (e) {
+        console.error('ゲームパッド状態復元エラー:', e);
+      }
+    }
 
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -453,49 +639,18 @@ function moveSelection(delta) {
   selectGame(selectedIndex + delta, true);
 }
 
-async function launchSelected() {
-  if (animating || launchInProgress || !games[selectedIndex]) return;
-  const game = games[selectedIndex];
-  launchInProgress = true;
-  startButton.disabled = true;
-  helperText.textContent = `${game.title} を確認しています…`;
-
-  try {
-    if (currentDiscoverySource === 'manifest') {
-      const latestManifest = await loadManifestGames({ forceReload:true });
-      const stillListed = latestManifest?.games?.some((item) => item.file === game.file);
-      if (latestManifest && !stillListed) {
-        await renderLauncher({ silent:true, preserveSelection:true, force:true });
-        setLauncherSubNote('選択したゲームが manifest から外れたため一覧を更新しました', 'games-manifest.js の最新状態を反映しました。');
-        return;
-      }
+    function launchSelected() {
+      if (animating || !games[selectedIndex]) return;
+      const game = games[selectedIndex];
+      ensureAudio();
+      sfx.launch();
+      helperText.textContent = `${game.title} を起動しています…`;
+      // ゲーム起動前にゲームパッド状態を保存
+      saveGamepadState();
+      console.log('🚀 ゲーム起動前にゲームパッド状態を保存しました');
+      const gamepadParam = selectedGamepadIndex >= 0 ? `?gamepad=${selectedGamepadIndex}` : '';
+      setTimeout(() => { window.location.href = game.file + gamepadParam; }, 180);
     }
-
-    const exists = await verifyGameAccessible(game);
-    if (!exists) {
-      await renderLauncher({ silent:true, preserveSelection:true, force:true });
-      if (games.length) {
-        setLauncherSubNote('選択したゲームが見つからなかったため一覧を更新しました', 'Game（games）フォルダの追加・削除は自動監視で反映されます。');
-      }
-      return;
-    }
-
-    let resolved = game.file;
-    try {
-      resolved = new URL(game.file, location.href).href;
-      if (resolved === location.href) return;
-    } catch {}
-    ensureAudio();
-    sfx.launch();
-    helperText.textContent = `${game.title} を起動しています…`;
-    setTimeout(() => { window.location.assign(resolved); }, 180);
-  } finally {
-    window.setTimeout(() => {
-      launchInProgress = false;
-      startButton.disabled = !games[selectedIndex];
-    }, 220);
-  }
-}
 
 function normalizeGame(record) {
   const fallback = FALLBACK_GAMES.find(item => item.file === record.file) || {};
@@ -995,32 +1150,148 @@ function handleKeydown(e) {
   if (['Enter',' ','ArrowUp'].includes(e.key)) { e.preventDefault(); launchSelected(); }
 }
 
-function pollGamepad() {
-  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  const pad = [...pads].find(Boolean);
-  if (!pad) {
-    padState.left = false;
-    padState.right = false;
-    padState.confirm = false;
-    return;
-  }
-  const x = Math.abs(pad.axes[0] || 0) > 0.35 ? pad.axes[0] : 0;
-  const y = Math.abs(pad.axes[1] || 0) > 0.35 ? pad.axes[1] : 0;
-  const left = !!(pad.buttons[14]?.pressed || x < -0.35);
-  const right = !!(pad.buttons[15]?.pressed || x > 0.35);
-  const confirm = !!(pad.buttons[12]?.pressed || pad.buttons[0]?.pressed || pad.buttons[1]?.pressed || y < -0.45);
-  if (left && !padState.left) moveSelection(-1);
-  if (right && !padState.right) moveSelection(1);
-  if (confirm && !padState.confirm) launchSelected();
-  padState.left = left;
-  padState.right = right;
-  padState.confirm = confirm;
-}
+    let lastConnectedCount = 0;
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const connectedPads = [...pads].map((p, i) => p ? { index: i, pad: p } : null).filter(Boolean);
+      
+      // 全ゲームパッドの状態を更新（タブ更新より前に実行）
+      connectedPads.forEach(({ index, pad }) => {
+        const rawX = pad.axes[0] || 0;
+        const rawY = pad.axes[1] || 0;
+        const x = parseFloat(rawX.toFixed(2));
+        const y = parseFloat(rawY.toFixed(2));
+        
+        if (!allGamepads[index]) {
+          console.log(`✅ ゲームパッド接続 [${index}]: ${pad.id}`);
+          console.log(`  ボタン数: ${pad.buttons.length}, 軸数: ${pad.axes.length}`);
+        }
+        
+        allGamepads[index] = {
+          index: index,
+          id: pad.id || `Gamepad ${index}`,
+          x: x,
+          y: y
+        };
+      });
+      
+      // 切断されたゲームパッドを削除
+      Object.keys(allGamepads).forEach(idx => {
+        if (!connectedPads.find(c => c.index === parseInt(idx))) {
+          console.log(`❌ ゲームパッド切断 [${idx}]: ${allGamepads[idx].id}`);
+          delete allGamepads[idx];
+          if (selectedGamepadIndex === parseInt(idx)) {
+            selectedGamepadIndex = -1;
+          }
+        }
+      });
+      
+      // 接続状態の変化を検知してタブを更新
+      if (connectedPads.length !== lastConnectedCount) {
+        console.log(`📊 ゲームパッド数変化: ${lastConnectedCount} → ${connectedPads.length}`);
+        lastConnectedCount = connectedPads.length;
+        updateGamepadTabs();
+      }
+      
+      // ゲームパッド状態を保存（定期的に更新）→ 削除（毎フレーム保存による上書き問題を解決）
+      
+      // 選択されたゲームパッドで操作入力を処理
+      if (selectedGamepadIndex >= 0 && allGamepads[selectedGamepadIndex]) {
+        const pad = pads[selectedGamepadIndex];
+        if (pad) {
+          const rawX = pad.axes[0] || 0;
+          const rawY = pad.axes[1] || 0;
+          const x = Math.abs(rawX) > 0.35 ? rawX : 0;
+          const y = Math.abs(rawY) > 0.35 ? rawY : 0;
+          const left = !!(pad.buttons[14]?.pressed || x < -0.35);
+          const right = !!(pad.buttons[15]?.pressed || x > 0.35);
+          const confirm = !!(pad.buttons[12]?.pressed || pad.buttons[0]?.pressed || pad.buttons[1]?.pressed || y < -0.45);
+          if (left && !padState.left) moveSelection(-1);
+          if (right && !padState.right) moveSelection(1);
+          if (confirm && !padState.confirm) launchSelected();
+          padState.left = left;
+          padState.right = right;
+          padState.confirm = confirm;
+        }
+      }
+    }
+    
+    function updateGamepadTabs() {
+      console.log('updateGamepadTabs 実行中:', { selectedGamepadIndex, allGamepads });
+      gamepadTabs.innerHTML = '';
+      
+      // allGamepadsが空の場合は早期終了（ただしselectedGamepadIndexはリセットしない）
+      if (Object.keys(allGamepads).length === 0) {
+        console.log('⚠️ ゲームパッドが接続されていません');
+        return;
+      }
+      
+      // 復元されたゲームパッドが実際に存在するかチェック
+      if (selectedGamepadIndex >= 0 && !allGamepads[selectedGamepadIndex]) {
+        console.log(`⚠️ 復元されたゲームパッド [${selectedGamepadIndex}] が存在しません。最初のゲームパッドに変更します`);
+        selectedGamepadIndex = parseInt(Object.keys(allGamepads)[0]);
+      }
+      
+      Object.entries(allGamepads).forEach(([idx, pad]) => {
+        const tab = document.createElement('button');
+        tab.className = 'gamepad-tab';
+        tab.textContent = `Pad ${idx}`;
+        tab.onclick = () => selectGamepad(parseInt(idx));
+        if (parseInt(idx) === selectedGamepadIndex) {
+          tab.classList.add('active');
+          console.log(`✅ Pad ${idx} をアクティブに設定`);
+        }
+        gamepadTabs.appendChild(tab);
+      });
+      
+      // 最初のゲームパッドを自動選択
+      if (selectedGamepadIndex === -1 && Object.keys(allGamepads).length > 0) {
+        selectGamepad(parseInt(Object.keys(allGamepads)[0]));
+      }
+    }
+    
+    function selectGamepad(index) {
+      selectedGamepadIndex = index;
+      updateGamepadTabs();
+      console.log(`🎮 ゲームパッド選択: [${index}] ${allGamepads[index]?.id}`);
+      // ゲームパッド選択時に状態を保存
+      saveGamepadState();
+    }
 
-function loop() {
-  pollGamepad();
-  requestAnimationFrame(loop);
-}
+    function updateGamepadDisplay() {
+      const hasGamepads = Object.keys(allGamepads).length > 0;
+      gamepadMonitor.style.display = hasGamepads ? 'flex' : 'none';
+      if (!hasGamepads) return;
+      
+      const currentPad = allGamepads[selectedGamepadIndex];
+      if (!currentPad) {
+        statusIndicator.textContent = '未接続';
+        statusIndicator.className = 'status-value disconnected';
+        deviceName.textContent = '-';
+        axisX.textContent = '0.00';
+        axisY.textContent = '0.00';
+        return;
+      }
+      
+      statusIndicator.textContent = '接続中';
+      statusIndicator.className = 'status-value connected';
+      deviceName.textContent = currentPad.id;
+      axisX.textContent = currentPad.x.toFixed(2);
+      axisY.textContent = currentPad.y.toFixed(2);
+      
+      const maxDistance = 45;
+      const x = currentPad.x * maxDistance;
+      const y = currentPad.y * maxDistance;
+      joystickDot.style.left = `calc(50% + ${x}px)`;
+      joystickDot.style.top = `calc(50% + ${y}px)`;
+      joystickDot.style.transform = 'translate(-50%, -50%)';
+    }
+
+    function loop() {
+      pollGamepad();
+      updateGamepadDisplay();
+      requestAnimationFrame(loop);
+    }
 
 startButton.addEventListener('click', launchSelected);
 folderButton.addEventListener('click', pickGamesFolder);
@@ -1033,11 +1304,27 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('beforeunload', stopLauncherWatch);
 
-(async () => {
-  await renderLauncher({ silent:false, preserveSelection:false, force:true });
-  startLauncherWatch();
-  requestAnimationFrame(loop);
-})();
+    (async () => {
+      games = await loadGames();
+      buildStage();
+      if (!games.length) {
+        helperText.textContent = 'games フォルダにゲームがありません';
+        return;
+      }
+      // ゲームパッド状態を復元
+      restoreGamepadState();
+      // 実際のゲームパッド状態を即座に取得（複数回試す）
+      console.log('🔄 ゲームパッド検出開始（最大3回試行）');
+      for (let i = 0; i < 3; i++) {
+        pollGamepad();
+        console.log(`試行 ${i + 1}: ${Object.keys(allGamepads).length} 台検出`);
+        if (Object.keys(allGamepads).length > 0) break;
+      }
+      updateGamepadTabs();
+      updateGamepadDisplay();
+      selectGame(0, false);
+      requestAnimationFrame(loop);
+    })();
   </script>
 </body>
 </html>

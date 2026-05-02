@@ -576,6 +576,11 @@
     }
 
     // --- 【新規】システム常駐ループ (入力の一元管理とプレビュー) ---
+    // URLから指定されたゲームパッドインデックスを取得
+    const params = new URLSearchParams(location.search);
+    const targetGamepadIndex = params.has('gamepad') ? parseInt(params.get('gamepad')) : -1;
+    console.log(`🎮 ゲームパッドインデックス: ${targetGamepadIndex}`);
+
     function systemLoop() {
         requestAnimationFrame(systemLoop);
 
@@ -586,10 +591,17 @@
         // Gamepad API のポーリング
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
         let pad = null;
-        for (let i = 0; i < gamepads.length; i++) {
-            if (gamepads[i]) {
-                pad = gamepads[i];
-                break;
+        
+        // 指定されたゲームパッドを優先的に使用
+        if (targetGamepadIndex >= 0 && targetGamepadIndex < gamepads.length) {
+            pad = gamepads[targetGamepadIndex];
+        } else {
+            // フォールバック: 最初に接続されているゲームパッドを使用
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) {
+                    pad = gamepads[i];
+                    break;
+                }
             }
         }
 

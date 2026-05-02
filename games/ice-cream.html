@@ -147,6 +147,10 @@ class InputManager {
         this.rawKey = { x: 0 };
         this.rawGyro = { x: 0 };
         this.gamepadConnected = false;
+        // URLから指定されたゲームパッドインデックスを取得
+        const params = new URLSearchParams(location.search);
+        this.targetGamepadIndex = params.has('gamepad') ? parseInt(params.get('gamepad')) : -1;
+        console.log(`🎮 ゲームパッドインデックス: ${this.targetGamepadIndex}`);
         this.initEvents();
     }
 
@@ -178,14 +182,19 @@ class InputManager {
         let pad = null;
         if (navigator.getGamepads) {
             const gamepads = navigator.getGamepads();
-            for (let i = 0; i < gamepads.length; i++) {
-                if (gamepads[i]) {
-                    pad = gamepads[i];
-                    this.gamepadConnected = true;
-                    break;
+            // 指定されたゲームパッドを優先的に使用
+            if (this.targetGamepadIndex >= 0 && this.targetGamepadIndex < gamepads.length) {
+                pad = gamepads[this.targetGamepadIndex];
+            } else {
+                // フォールバック: 最初に接続されているゲームパッドを使用
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) {
+                        pad = gamepads[i];
+                        break;
+                    }
                 }
             }
-            if (!pad) this.gamepadConnected = false;
+            this.gamepadConnected = pad !== null;
         }
 
         let targetX = 0;
