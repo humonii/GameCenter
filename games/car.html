@@ -323,6 +323,71 @@ function spawnWave() {
     });
 }
 
+function getCarHitPolygon(car, angle = 0, widen = 0) {
+    const centerX = car.x + car.w / 2;
+    const centerY = car.y + car.h / 2;
+    const hitWidth = car.w * 1.08 + widen * 2;
+    const hitHeight = car.h * 0.9;
+    const halfW = hitWidth / 2;
+    const halfH = hitHeight / 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const corners = [
+        { x: -halfW, y: -halfH },
+        { x: halfW, y: -halfH },
+        { x: halfW, y: halfH },
+        { x: -halfW, y: halfH }
+    ];
+
+    return corners.map((point) => ({
+        x: centerX + point.x * cos - point.y * sin,
+        y: centerY + point.x * sin + point.y * cos
+    }));
+}
+
+function getPolygonAxes(points) {
+    const axes = [];
+    for (let i = 0; i < points.length; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        const edgeX = b.x - a.x;
+        const edgeY = b.y - a.y;
+        const length = Math.hypot(edgeX, edgeY) || 1;
+        axes.push({ x: -edgeY / length, y: edgeX / length });
+    }
+    return axes;
+}
+
+function projectPolygon(points, axis) {
+    let min = Infinity;
+    let max = -Infinity;
+    for (const point of points) {
+        const projection = point.x * axis.x + point.y * axis.y;
+        if (projection < min) min = projection;
+        if (projection > max) max = projection;
+    }
+    return { min, max };
+}
+
+function polygonsOverlap(a, b) {
+    const axes = [...getPolygonAxes(a), ...getPolygonAxes(b)];
+    for (const axis of axes) {
+        const rangeA = projectPolygon(a, axis);
+        const rangeB = projectPolygon(b, axis);
+        if (rangeA.max < rangeB.min || rangeB.max < rangeA.min) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function carsCollide(playerCar, enemyCar) {
+    const swayPadding = Math.min(playerCar.w * 0.08, Math.abs(player.vx) * 0.45);
+    const playerPolygon = getCarHitPolygon(playerCar, player.vx * 0.03, swayPadding);
+    const enemyPolygon = getCarHitPolygon(enemyCar, 0, enemyCar.w * 0.02);
+    return polygonsOverlap(playerPolygon, enemyPolygon);
+}
+
 function update() {
     input.update();
     
@@ -368,17 +433,13 @@ function update() {
         let e = enemies[i];
         e.y += e.speed;
 
-        // 衝突判定 (少し小さめにしてギリギリ避けられるように)
-        const padX = player.w * 0.15;
-        const padY = player.h * 0.1;
-        if (player.x + padX < e.x + e.w - padX && 
-            player.x + player.w - padX > e.x + padX &&
-            player.y + padY < e.y + e.h - padY && 
-            player.y + player.h - padY > e.y + padY) {
+        // 衝突判定（見た目に近い少し大きめの当たり判定）
+        if (carsCollide(player, e)) {
             sfx.crash();
             isPlaying = false;
             document.getElementById('prep-screen').style.display = 'flex';
             document.getElementById('start-btn').innerText = 'TRY AGAIN';
+            return;
         }
         
         // 画面外削除

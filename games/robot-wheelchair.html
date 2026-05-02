@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta charset="utf-8">
+    <meta name="game:title" content="ロボット車椅子探索">
+    <meta name="game:tag" content="Open World">
+    <meta name="game:cover" content="generic">
+    <meta name="game:cover-color" content="#57b8a8">
+    <meta name="game:emoji" content="🦼">
+    <meta name="game:order" content="15">
+    <link rel="stylesheet" type="text/css" href="robot-wheelchair/styles.css">
+    <style>
+        .file-mode-notice {
+            min-height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            color: #ecf8f3;
+            background: linear-gradient(180deg, #172529, #0b1215);
+            font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+        }
+
+        .file-mode-card {
+            width: min(100%, 480px);
+            padding: 24px;
+            border: 1px solid rgba(236, 248, 243, .16);
+            border-radius: 8px;
+            background: rgba(13, 21, 28, .78);
+            box-shadow: 0 24px 56px rgba(0, 0, 0, .32);
+        }
+
+        .file-mode-card h1 {
+            margin: 0 0 10px;
+            font-size: 1.35rem;
+        }
+
+        .file-mode-card p {
+            margin: 0 0 14px;
+            color: rgba(236, 248, 243, .72);
+            line-height: 1.7;
+        }
+
+        .file-mode-card code {
+            color: #fff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .file-mode-card a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 11px 18px;
+            border-radius: 8px;
+            color: #081013;
+            background: linear-gradient(135deg, #ffd15c, #75e6cf);
+            text-decoration: none;
+            font-weight: 900;
+        }
+    </style>
+    <title>ロボット車椅子探索</title>
+    <script>
+        window.ROBOT_WHEELCHAIR_BASE = 'robot-wheelchair/';
+        window.__ROBOT_WHEELCHAIR_FILE_MODE__ = location.protocol === 'file:';
+        if (!window.__ROBOT_WHEELCHAIR_FILE_MODE__) {
+            document.write('<script src="robot-wheelchair/scripts/playcanvas-stable.min.js"><\/script>');
+            document.write('<script src="robot-wheelchair/scripts/__settings__.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <script>
+        if (window.__ROBOT_WHEELCHAIR_FILE_MODE__) {
+            document.body.className = 'file-mode-notice';
+            document.body.innerHTML = [
+                '<main class="file-mode-card">',
+                '<h1>HTTP/HTTPSで開いてください</h1>',
+                '<p>PlayCanvasのゲームは <code>config.json</code> や音声ファイルを通信として読み込むため、HTMLを直接開く <code>file://</code> ではブラウザにブロックされます。</p>',
+                '<p>GitHub Pagesの公開URLから開くか、ローカル確認では <code>start_game_center.bat</code> / <code>start_game_center.command</code> / <code>python3 start_game_center.py</code> を使ってください。</p>',
+                '<a href="../index.html">GameCenterトップへ</a>',
+                '</main>'
+            ].join('');
+        } else {
+            document.write('<script src="robot-wheelchair/scripts/__start__.js"><\/script>');
+            document.write('<script src="robot-wheelchair/scripts/__loading__.js"><\/script>');
+        }
+    </script>
+</body>
+</html>
