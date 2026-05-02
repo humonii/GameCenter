@@ -143,12 +143,13 @@
   <script>
 const FALLBACK_GAMES = [
   { file:'car.html', title:'レトロレーサー', tag:'Arcade', cover:'road', order:10 },
+  { file:'robot-wheelchair.html', title:'ロボット車椅子探索', tag:'Open World', cover:'generic', emoji:'🦼', coverColor:'#57b8a8', order:15 },
   { file:'ice-cream.html', title:'アイスタワー', tag:'Balance', cover:'ice', order:20 },
   { file:'rhythm.html', title:'リズム', tag:'Rhythm', cover:'rhythm', order:30 },
   { file:'sushi.html', title:'寿司キャッチ', tag:'Action', cover:'sushi', order:40 },
-  { file:'quiz.html', title:'クイズ', tag:'Quiz', cover:'quiz', order:50 },
   { file:'taikan-groove-theater-sound-racer-start.html', title:'たいかんグルーヴ', tag:'Rhythm', cover:'rhythm', emoji:'🧘', order:240, coverColor:'#6e7cff' },
-  { file:'sky-ribbon-rise-racer-start.html', title:'スカイリボン・ライズ', tag:'Action', cover:'generic', emoji:'🌌', order:275, coverColor:'#6b53ff' }
+  { file:'sky-ribbon-rise-racer-start.html', title:'スカイリボン・ライズ', tag:'Action', cover:'generic', emoji:'🌌', order:275, coverColor:'#6b53ff' },
+  { file:'cyber-breakout.html', title:'NEON BREAKOUT', tag:'Action', cover:'generic', emoji:'👾', coverColor:'#ff00ff', order:999 }
 ];
 const IGNORE_FILES = new Set(['index.html', 'quize.html', 'game-template.html']);
 const GAME_REGISTRY_KEY = 'feeling-game-launcher:games:v1';
@@ -160,7 +161,7 @@ const WATCH_INTERVAL_MS = 1000;
 const MANIFEST_GLOBAL_KEY = '__FEELING_GAME_MANIFEST__';
 const MANIFEST_SCRIPT_PATH = './games-manifest.js';
 const MANIFEST_SCRIPT_ID = 'liveGamesManifestScript';
-const MANIFEST_NOTE = 'games-manifest.js を表示しています。付属の watcher を起動すると、games フォルダの追加・削除も自動反映されます。';
+const MANIFEST_NOTE = 'GitHub Pagesなどの静的ホスティング向けに games-manifest.js から一覧を読み込んでいます。';
 const LIVE_FEED_PATH = '../__gamecenter__/games.json';
 
 const COVER_PRESETS = {
@@ -802,7 +803,6 @@ async function loadManifestGames(options = {}) {
 
 async function loadGames() {
   const registryGames = loadRegistryGames();
-  const storedHandle = await loadStoredDirectoryHandle();
   const folderCapable = typeof window.showDirectoryPicker === 'function';
   let note = '';
   let showFolderButton = folderCapable;
@@ -822,6 +822,33 @@ async function loadGames() {
     };
   }
 
+  if (location.protocol === 'file:') {
+    return {
+      games: [],
+      helper: 'GitHub PagesなどのHTTP/HTTPS URLで開いてください',
+      note: note || '直接 file:// で開くと PlayCanvas の config.json や音声ファイルがブラウザにブロックされます。ローカル確認では start_game_center.bat / start_game_center.command / python3 start_game_center.py を使ってください。',
+      showFolderButton:folderCapable,
+      folderButtonLabel,
+      source:'needs-http',
+      directoryHandle:null
+    };
+  }
+
+  const manifestFeed = await loadManifestGames();
+  if (manifestFeed) {
+    saveRegistryGames(manifestFeed.games.map((game) => ({ ...game, updatedAt:Date.now() })));
+    return {
+      games: manifestFeed.games,
+      helper: manifestFeed.games.length ? `${manifestFeed.games.length} 件のゲームを読み込みました` : 'games-manifest.js にゲームがありません',
+      note: MANIFEST_NOTE,
+      showFolderButton:false,
+      folderButtonLabel,
+      source:'manifest',
+      directoryHandle:null
+    };
+  }
+
+  const storedHandle = await loadStoredDirectoryHandle();
   const discovered = await discoverFilesFromDirectory();
   if (discovered.length) {
     const serverGames = await fetchGamesByFiles(discovered);
@@ -853,18 +880,6 @@ async function loadGames() {
     }
     folderButtonLabel = 'Game（games）フォルダを変更';
     note = '保存済みのフォルダ権限を確認できませんでした。';
-  }
-
-  if (location.protocol === 'file:') {
-    return {
-      games: [],
-      helper: '完成版は start_game_center.bat / start_game_center.command で起動してください',
-      note: note || '直接 file:// で開くと games フォルダの追加・削除を自動反映できません。右下のボタンで games フォルダを開くか、起動スクリプトを使ってください。',
-      showFolderButton:folderCapable,
-      folderButtonLabel,
-      source:'needs-folder',
-      directoryHandle:null
-    };
   }
 
   const candidates = [...registryGames.map((game) => game.file), ...FALLBACK_GAMES.map((game) => game.file)];
@@ -967,7 +982,7 @@ async function pickGamesFolder() {
     await renderLauncher({ silent:false, preserveSelection:true, force:true });
   } catch (error) {
     if (error?.name !== 'AbortError') {
-      setLauncherNote('Game（games）フォルダを開けませんでした', 'もう一度フォルダを開くか、start_game_center.bat / start_game_center.command で起動してください。');
+      setLauncherNote('Game（games）フォルダを開けませんでした', 'GitHub Pagesの公開URL、または start_game_center.bat / start_game_center.command / python3 start_game_center.py から開いてください。');
     }
   } finally {
     setFolderButton(!folderButton.hidden, folderButton.textContent || 'gamesフォルダを指定', false);

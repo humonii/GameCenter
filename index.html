@@ -35,12 +35,12 @@
     if (location.protocol !== 'file:') {
       location.replace('games/index.html');
     } else {
-      lead.textContent = '完成版は起動スクリプトから開いてください。そうするとゲーム追加・削除が選択画面へ自動反映されます。';
+      lead.textContent = 'この画面は GitHub Pages などの HTTP/HTTPS URL で開くとそのままゲーム選択画面へ進みます。';
       details.innerHTML = `
-        <div class="note">Windows は <span class="code">start_game_center.bat</span>、macOS は <span class="code">start_game_center.command</span> を実行してください。</div>
-        <div class="note">そのまま HTML を直接開く場合は、追加・削除の自動反映はできません。右下のボタンから <span class="code">games</span> フォルダを開いたときだけライブ反映されます。</div>`;
+        <div class="note">HTMLを直接開く <span class="code">file://</span> では、PlayCanvasの <span class="code">config.json</span> や音声ファイルの読み込みがブラウザにブロックされます。</div>
+        <div class="note">GitHub Pagesへ公開したURLから開くか、ローカル確認では <span class="code">start_game_center.bat</span> / <span class="code">start_game_center.command</span> / <span class="code">python3 start_game_center.py</span> を使ってください。</div>`;
       actions.innerHTML = `
-        <a class="button primary" href="games/index.html">このまま簡易モードで開く</a>
+        <a class="button primary" href="games/index.html">ゲーム選択画面を開く</a>
       `;
     }
   </script>

@@ -1,19 +1,21 @@
 # Feeling GameCenter
 
-完成版です。起動は **`start_game_center.bat`**（Windows）または **`start_game_center.command`**（macOS）を使ってください。
+GitHub Pagesなどの静的ホスティングでも動くゲームセンターです。
+ローカル確認では **`start_game_center.bat`**（Windows）または **`start_game_center.command`**（macOS）を使ってください。
 
 ## 使い方
 
-1. ZIP を展開
-2. `start_game_center.bat` / `start_game_center.command` を実行
+1. GitHub Pagesへこのフォルダを公開
+2. 公開URLの `index.html` を開く
 3. ブラウザが開いたら、そのままゲームを選択
+
+ローカルで確認する場合は `start_game_center.bat` / `start_game_center.command` / `python3 start_game_center.py` を実行してください。
 
 ## この版の仕様
 
-- ローカルサーバー経由で起動します
-- `games` フォルダへの **追加 / 削除** が選択画面へ自動反映されます
-- `file://` で HTML を直接開いた場合は、追加 / 削除の自動反映は行いません
-- 直接開いた場合でも、ランチャー右下のボタンから `games` フォルダを開けばライブ反映できます
+- GitHub Pagesでは `games/games-manifest.js` からゲーム一覧を読み込みます
+- ローカルサーバー経由では `games` フォルダへの **追加 / 削除** が選択画面へ自動反映されます
+- `file://` で HTML を直接開くと、PlayCanvas の `config.json` や音声ファイルがブラウザにブロックされます
 
 ## 今回の修正
 
@@ -23,14 +25,15 @@
   - リザルト画面・タブ非表示・終了時に音を確実に停止するように修正
 
 - **ゲーム選択画面**
+  - GitHub Pages向けの静的 `games-manifest.js` を追加
   - 起動スクリプト専用のライブ一覧 API を追加
   - `games` フォルダの追加 / 削除を自動反映
-  - 直接 HTML を開いたときは、誤解しやすい古い一覧を出さず、起動方法の案内を出すように変更
+  - 直接 HTML を開いたときは、HTTP/HTTPSで開く案内を出すように変更
 
 ## 同梱ファイル
 
 - `start_game_center.py` : ローカルサーバー起動
 - `start_game_center.bat` / `start_game_center.command` : 起動用
 - `games/` : 実ゲーム本体
+- `games/games-manifest.js` : GitHub Pages向けの静的ゲーム一覧
 - `asset/` : クイズ用データ
-
