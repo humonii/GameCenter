@@ -328,6 +328,7 @@ const MANIFEST_SCRIPT_PATH = './games-manifest.js';
 const MANIFEST_SCRIPT_ID = 'liveGamesManifestScript';
 const MANIFEST_NOTE = 'GitHub Pagesなどの静的ホスティング向けに games-manifest.js から一覧を読み込んでいます。';
 const LIVE_FEED_PATH = '../__gamecenter__/games.json';
+const LIVE_FEED_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
 
 const COVER_PRESETS = {
   road: {
@@ -875,6 +876,7 @@ async function enumerateGamesFromHandle(handle) {
 
 async function loadLiveGameFeed() {
   if (location.protocol === 'file:') return null;
+  if (!LIVE_FEED_HOSTS.has(location.hostname) && !location.hostname.endsWith('.localhost')) return null;
   try {
     const res = await fetch(LIVE_FEED_PATH, { cache:'no-store' });
     if (!res.ok) return null;
