@@ -269,8 +269,14 @@
       </div>
     </section>
     <div class="bottom-bar">
-      <div class="helper" id="helperText">読み込み中…</div>
-      <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+      <div class="helper-wrap">
+        <div class="helper" id="helperText">読み込み中…</div>
+        <div class="helper-sub" id="folderHintText" hidden></div>
+      </div>
+      <div class="action-row">
+        <button class="folder-btn" id="folderButton" type="button" hidden>gamesフォルダを指定</button>
+        <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+      </div>
     </div>
     <div class="gamepad-monitor" id="gamepadMonitor" style="display:none">
       <div style="width:100%;display:flex;flex-direction:column;gap:8px">
@@ -351,6 +357,8 @@ const COVER_PRESETS = {
 
     const stage = document.getElementById('carouselStage');
     const helperText = document.getElementById('helperText');
+    const folderHintText = document.getElementById('folderHintText');
+    const folderButton = document.getElementById('folderButton');
     const startButton = document.getElementById('startButton');
     const gamepadMonitor = document.getElementById('gamepadMonitor');
     const gamepadTabs = document.getElementById('gamepadTabs');
@@ -364,6 +372,14 @@ const COVER_PRESETS = {
     let selectedIndex = 0;
     let animating = false;
     let audioCtx = null;
+    let launchInProgress = false;
+    let launcherWatchTimer = 0;
+    let manifestReloadPromise = null;
+    let currentDirectoryHandle = null;
+    let currentDiscoverySource = 'unknown';
+    let renderVersion = 0;
+    let gamesSignature = '';
+    let launcherInfoSignature = '';
     const padState = { left:false, right:false, confirm:false };
     const allGamepads = {}; // インデックス => {index, id, x, y}
     let selectedGamepadIndex = -1;
@@ -1305,8 +1321,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', stopLauncherWatch);
 
     (async () => {
-      games = await loadGames();
-      buildStage();
+      await renderLauncher({ silent:false, preserveSelection:false, force:true });
       if (!games.length) {
         helperText.textContent = 'games フォルダにゲームがありません';
         return;
@@ -1324,6 +1339,7 @@ window.addEventListener('beforeunload', stopLauncherWatch);
       updateGamepadDisplay();
       selectGame(0, false);
       requestAnimationFrame(loop);
+      startLauncherWatch();
     })();
   </script>
 </body>
