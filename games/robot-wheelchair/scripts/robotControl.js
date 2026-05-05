@@ -378,6 +378,7 @@ RobotControl.prototype.createTouchControls = function () {
     this.createTouchButton('left', '<', 18, 18, [0, 0, 0, 0], [0, 0]);
     this.createTouchButton('right', '>', 86, 18, [0, 0, 0, 0], [0, 0]);
     this.createTouchButton('forward', '^', -18, 18, [1, 0, 1, 0], [1, 0]);
+    this.createTouchButton('backward', 'v', 52, 18, [1, 0, 1, 0], [1, 0]);
 };
 
 RobotControl.prototype.createMessageUi = function () {
@@ -727,8 +728,8 @@ RobotControl.prototype.updatePlayer = function (dt) {
     var keyboardBackward = this.isKeyPressed(pc.KEY_S) || this.isKeyPressed(pc.KEY_DOWN);
     var touchForward = this.touch.forward;
     var touchBackward = this.touch.backward;
-    var gamepadForward = this.gamepadAxes.y < -0.35;
-    var gamepadBackward = this.gamepadAxes.y > 0.35;
+    var gamepadForward = this.gamepadAxes.y < -0.03;
+    var gamepadBackward = this.gamepadAxes.y > 0.03;
     var forward = keyboardForward || touchForward || gamepadForward;
     var backward = keyboardBackward || touchBackward || gamepadBackward;
 
@@ -743,12 +744,12 @@ RobotControl.prototype.updatePlayer = function (dt) {
     } else {
         // ジョイスティックの場合は入力強度に基づいて回転
         // X軸: -1.0～0 を左回転、0～1.0 を右回転に正規化
-        if (this.gamepadAxes.x < -0.35) {
-            var leftStrength = Math.max(0, Math.min(1, -this.gamepadAxes.x));
+        if (this.gamepadAxes.x < -0.03) {
+            var leftStrength = Math.max(0, Math.min(1, (-this.gamepadAxes.x - 0.03) / 0.97));
             var leftRotationSpeed = leftStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
             this.heading += leftRotationSpeed * dt;
-        } else if (this.gamepadAxes.x > 0.35) {
-            var rightStrength = Math.max(0, Math.min(1, this.gamepadAxes.x));
+        } else if (this.gamepadAxes.x > 0.03) {
+            var rightStrength = Math.max(0, Math.min(1, (this.gamepadAxes.x - 0.03) / 0.97));
             var rightRotationSpeed = rightStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
             this.heading -= rightRotationSpeed * dt;
         }
@@ -766,8 +767,8 @@ RobotControl.prototype.updatePlayer = function (dt) {
         this.speed = this.clamp(this.speed + 18 * dt, 0, 18.5);
     } else if (gamepadForward) {
         // ゲームパッド入力値と速度をリニアに対応
-        // Y軸: -1.0～0 を 0～1 に正規化して、即座に速度を設定
-        var gamepadStrength = Math.max(0, Math.min(1, -this.gamepadAxes.y));
+        // Y軸: -1.0～-0.03 を 0～1 に正規化して、即座に速度を設定
+        var gamepadStrength = Math.max(0, Math.min(1, (-this.gamepadAxes.y - 0.03) / 0.97));
         this.speed = gamepadStrength * 18.5;  // 入力値に比例した速度を即座に設定
     } else {
         // 入力なし：減速
