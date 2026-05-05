@@ -544,14 +544,14 @@ RobotControl.prototype.createTree = function (x, z, scale) {
     var group = new pc.Entity('Tree');
     group.setLocalPosition(x, 0, z);
     group.setLocalEulerAngles(0, this.randomRange(0, 360), 0);
-    group.setLocalScale(scale * 1.5, scale * 1.5, scale * 1.5);
+    group.setLocalScale(scale * 4.0, scale * 4.0, scale * 4.0);
     this.app.root.addChild(group);
     this.addPrimitive('Trunk', 'cylinder', this.materials.trunk, [0, .95, 0], [.16, 1.9, .16], null, group);
     this.addPrimitive('Leaf A', 'cone', this.materials.leaf, [0, 1.7, 0], [1.35, 1.35, 1.35], null, group);
     this.addPrimitive('Leaf B', 'cone', this.materials.leaf, [0, 2.2, 0], [1.05, 1.15, 1.05], [0, 28, 0], group);
     this.addPrimitive('Leaf C', 'cone', this.materials.leaf, [0, 2.62, 0], [.8, .95, .8], [0, -22, 0], group);
-    this.addCollider(x, z, 1.05 * scale * 1.5);
-    this.landmarks.push({ kind: 'tree', x: x, z: z, radius: 13 * scale * 1.5 });
+    this.addCollider(x, z, 1.05 * scale * 4.0);
+    this.landmarks.push({ kind: 'tree', x: x, z: z, radius: 13 * scale * 4.0 });
 };
 
 RobotControl.prototype.createStone = function (x, z, scale) {
@@ -636,7 +636,7 @@ RobotControl.prototype.createPlayer = function () {
 RobotControl.prototype.createCoins = function () {
     var minDistance = 34;
     var attempts = 0;
-    while (this.coins.length < this.COIN_TOTAL && attempts < this.COIN_TOTAL * 50) {
+    while (this.coins.length < this.COIN_TOTAL && attempts < this.COIN_TOTAL * 80) {
         attempts++;
         var angle = Math.random() * Math.PI * 2;
         var distance = this.randomRange(32, this.HALF_WORLD - 35);
@@ -644,7 +644,7 @@ RobotControl.prototype.createCoins = function () {
         var z = Math.sin(angle) * distance + this.randomRange(-16, 16);
         if (Math.abs(x) > this.HALF_WORLD - 18 || Math.abs(z) > this.HALF_WORLD - 18) continue;
         if (Math.hypot(x + 120, z - 105) < 95) continue;
-        if (this.touchesCollider(x, z, 4.2)) continue;
+        if (this.touchesCollider(x, z, 6.3)) continue;
         if (this.coins.some(function (coin) { return Math.hypot(coin.x - x, coin.z - z) < minDistance; })) continue;
         var entity = this.addPrimitive('Coin', 'cylinder', this.materials.coin, [x, 1.18, z], [1.6, .14, 1.6], [0, 0, 90]);
         var halo = this.addPrimitive('Coin Glow', 'sphere', this.materials.coinGlow, [0, 0, 0], [1.95, .14, 1.95], null, entity);

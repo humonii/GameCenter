@@ -269,8 +269,14 @@
       </div>
     </section>
     <div class="bottom-bar">
-      <div class="helper" id="helperText">読み込み中…</div>
-      <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+      <div class="helper-wrap">
+        <div class="helper" id="helperText">読み込み中…</div>
+        <div class="helper-sub" id="folderHintText" hidden></div>
+      </div>
+      <div class="action-row">
+        <button class="folder-btn" id="folderButton" type="button" hidden>gamesフォルダを指定</button>
+        <button class="launch-btn" id="startButton" type="button" disabled>はじめる</button>
+      </div>
     </div>
     <div class="gamepad-monitor" id="gamepadMonitor" style="display:none">
       <div style="width:100%;display:flex;flex-direction:column;gap:8px">
@@ -352,6 +358,8 @@ const COVER_PRESETS = {
     const stage = document.getElementById('carouselStage');
     const helperText = document.getElementById('helperText');
     const startButton = document.getElementById('startButton');
+    const folderButton = document.getElementById('folderButton');
+    const folderHintText = document.getElementById('folderHintText');
     const gamepadMonitor = document.getElementById('gamepadMonitor');
     const gamepadTabs = document.getElementById('gamepadTabs');
     const statusIndicator = document.getElementById('statusIndicator');
@@ -367,6 +375,15 @@ const COVER_PRESETS = {
     const padState = { left:false, right:false, confirm:false };
     const allGamepads = {}; // インデックス => {index, id, x, y}
     let selectedGamepadIndex = -1;
+    
+    let launcherWatchTimer = 0;
+    let renderVersion = 0;
+    let gamesSignature = '';
+    let launcherInfoSignature = '';
+    let manifestReloadPromise = null;
+    let currentDirectoryHandle = null;
+    let currentDiscoverySource = 'unknown';
+    let launchInProgress = false;
 
     // ゲームパッド情報をsessionStorageに保存
     function saveGamepadState() {
@@ -649,6 +666,7 @@ function moveSelection(delta) {
       saveGamepadState();
       console.log('🚀 ゲーム起動前にゲームパッド状態を保存しました');
       const gamepadParam = selectedGamepadIndex >= 0 ? `?gamepad=${selectedGamepadIndex}` : '';
+      launchInProgress = true;
       setTimeout(() => { window.location.href = game.file + gamepadParam; }, 180);
     }
 
@@ -1305,14 +1323,16 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', stopLauncherWatch);
 
     (async () => {
-      games = await loadGames();
-      buildStage();
+      // ゲーム一覧を読み込み、表示を更新
+      await renderLauncher({ silent:false, preserveSelection:false, force:true });
+      
       if (!games.length) {
-        helperText.textContent = 'games フォルダにゲームがありません';
         return;
       }
+      
       // ゲームパッド状態を復元
       restoreGamepadState();
+      
       // 実際のゲームパッド状態を即座に取得（複数回試す）
       console.log('🔄 ゲームパッド検出開始（最大3回試行）');
       for (let i = 0; i < 3; i++) {
@@ -1322,7 +1342,11 @@ window.addEventListener('beforeunload', stopLauncherWatch);
       }
       updateGamepadTabs();
       updateGamepadDisplay();
-      selectGame(0, false);
+      
+      // ファイル変更監視を開始
+      startLauncherWatch();
+      
+      // ゲームループ開始
       requestAnimationFrame(loop);
     })();
   </script>

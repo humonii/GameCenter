@@ -64,9 +64,16 @@ pc.script.createLoadingScreen((app) => {
         const logo = document.createElement('img');
         logo.src = `${ASSET_PREFIX}logo.png`;
         splash.appendChild(logo);
-        logo.onload = () => {
+        
+        const showContent = () => {
             splash.style.display = 'block';
         };
+        
+        logo.onload = showContent;
+        logo.onerror = showContent;  // 画像読み込み失敗時も表示
+        
+        // タイムアウト（1秒）- 画像読み込みに時間がかかる場合の対策
+        setTimeout(showContent, 1000);
 
         const container = document.createElement('div');
         container.id = 'progress-bar-container';

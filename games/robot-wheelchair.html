@@ -58,6 +58,44 @@
             text-decoration: none;
             font-weight: 900;
         }
+
+        #back-button {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ecf8f3;
+            font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(236, 248, 243, 0.2);
+        }
+
+        #back-button:hover {
+            background: rgba(0, 0, 0, 0.8);
+            border-color: rgba(236, 248, 243, 0.4);
+            transform: translateY(-1px);
+        }
+
+        #back-button:active {
+            transform: translateY(1px);
+        }
+
+        @media (max-width: 480px) {
+            #back-button {
+                padding: 8px 12px;
+                font-size: 13px;
+                top: 8px;
+                left: 8px;
+            }
+        }
     </style>
     <title>ロボット車椅子探索</title>
     <script>
@@ -70,6 +108,7 @@
     </script>
 </head>
 <body>
+    <button id="back-button" title="ゲーム選択画面に戻る">← 戻る</button>
     <script>
         if (window.__ROBOT_WHEELCHAIR_FILE_MODE__) {
             document.body.className = 'file-mode-notice';
@@ -85,6 +124,10 @@
             document.write('<script src="robot-wheelchair/scripts/start.js"><\/script>');
             document.write('<script src="robot-wheelchair/scripts/loading.js"><\/script>');
         }
+
+        // 戻るボタンの処理
+        document.getElementById('back-button').addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
     </script>
-</body>
 </html>
