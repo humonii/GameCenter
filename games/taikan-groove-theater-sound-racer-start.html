@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="game:title" content="たいかんグルーヴ" />
+  <meta name="game:tag" content="Rhythm" />
+  <meta name="game:cover" content="rhythm" />
+  <meta name="game:emoji" content="🧘" />
+  <meta name="game:order" content="240" />
+  <title>Feeling Game | たいかんグルーヴ</title>
+  <style>
+    :root{
+      --bg:#0c1830;
+      --panel:rgba(9,17,36,.9);
+      --line:rgba(255,255,255,.12);
+      --text:#f2f7ff;
+      --sub:#bfd1ee;
+      --accent:#7ad7ff;
+      --accent-2:#ffd76d;
+      --good:#7bf7bc;
+      --miss:#ff9ca6;
+      --shadow:0 18px 44px rgba(0,0,0,.3);
+      --card:rgba(255,255,255,.05);
+      --glow:0 0 0 1px rgba(255,255,255,.08), 0 12px 28px rgba(0,0,0,.24);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;background:radial-gradient(circle at top,#214f82 0%,#122340 42%,#09111f 100%);color:var(--text);overflow:hidden}
+    body{padding:14px}
+    .home-btn{position:fixed;top:14px;left:14px;z-index:25;padding:10px 14px;border-radius:999px;text-decoration:none;color:#fff;background:rgba(10,12,22,.7);border:1px solid rgba(255,255,255,.15);box-shadow:0 10px 24px rgba(0,0,0,.22);backdrop-filter:blur(8px)}
+    .home-btn:hover{filter:brightness(1.08)}
+    #app{position:relative;width:min(1180px,100%);height:calc(100dvh - 28px);margin:0 auto;background:linear-gradient(180deg,rgba(11,19,38,.95),rgba(7,13,27,.96));border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:20px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px;overflow:hidden}
+    .panel{border:1px solid var(--line);border-radius:22px;background:rgba(255,255,255,.04);padding:16px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:92px}
+    .title{font-size:clamp(1.5rem,2.4vw,2.15rem);font-weight:900;letter-spacing:.02em}
+    .sub{margin-top:6px;color:var(--sub);font-size:.98rem;line-height:1.5}
+    .hud{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+    .pill{padding:10px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);min-width:116px;display:flex;justify-content:space-between;gap:10px;font-weight:800}
+    .pill span{color:var(--accent)}
+    .main-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(320px,.95fr);gap:14px;min-height:0}
+    .stage-panel{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px;min-height:0}
+    .phase-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .phase-banner{font-weight:900;letter-spacing:.03em;font-size:1.02rem;padding:10px 14px;border-radius:999px;background:rgba(122,215,255,.12);border:1px solid rgba(122,215,255,.25)}
+    .phase-banner.perform{background:rgba(255,215,109,.12);border-color:rgba(255,215,109,.25)}
+    .phase-banner.result{background:rgba(123,247,188,.12);border-color:rgba(123,247,188,.25)}
+    .microcopy{color:var(--sub);font-weight:700}
+    .stage{
+      position:relative;
+      min-height:0;
+      border-radius:26px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.1);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,.18), transparent 28%),
+        radial-gradient(circle at 24% 22%, rgba(122,215,255,.12), transparent 26%),
+        radial-gradient(circle at 78% 18%, rgba(255,215,109,.1), transparent 24%),
+        linear-gradient(180deg, rgba(25,56,94,.6), rgba(10,16,30,.85) 58%, rgba(4,7,15,.96));
+    }
+    .stage::after{
+      content:"";
+      position:absolute;left:0;right:0;bottom:0;height:28%;
+      background:linear-gradient(180deg,rgba(255,255,255,0),rgba(0,0,0,.06) 18%,rgba(0,0,0,.44));
+      pointer-events:none;
+    }
+    .spotlight{
+      position:absolute;top:-10%;width:38%;height:74%;filter:blur(4px);opacity:.62;
+      background:radial-gradient(circle at top, rgba(255,255,255,.22), rgba(255,255,255,.08) 28%, rgba(255,255,255,0) 72%);
+      clip-path:polygon(44% 0,56% 0,88% 100%,12% 100%);
+    }
+    .spotlight.left{left:8%}
+    .spotlight.right{right:8%}
+    .performer{
+      position:absolute;bottom:18%;width:min(30%,220px);aspect-ratio:0.86/1.3;display:grid;place-items:end center;
+      transition:filter .2s ease, opacity .2s ease;
+    }
+    .performer.demo{left:12%}
+    .performer.player{right:12%}
+    .performer.active{filter:drop-shadow(0 0 18px rgba(255,255,255,.18))}
+    .performer .ring{
+      position:absolute;inset:auto 12% 1% 12%;height:10%;border-radius:999px;background:radial-gradient(circle, rgba(122,215,255,.38), rgba(122,215,255,.03) 70%, transparent 74%);
+      filter:blur(2px);
+    }
+    .performer.player .ring{background:radial-gradient(circle, rgba(255,215,109,.4), rgba(255,215,109,.05) 68%, transparent 74%)}
+    .performer .name{
+      position:absolute;bottom:-4%;padding:8px 12px;border-radius:999px;font-weight:900;background:rgba(8,14,28,.72);border:1px solid rgba(255,255,255,.1);backdrop-filter:blur(8px)
+    }
+    .performer .silhouette{position:relative;width:100%;height:100%;transition:transform .16s ease}
+    .head{position:absolute;left:50%;top:9%;width:18%;aspect-ratio:1;border-radius:50%;transform:translateX(-50%);background:linear-gradient(180deg,#f7fbff,#d9e6ff);box-shadow:var(--glow)}
+    .torso{position:absolute;left:50%;top:24%;width:26%;height:38%;transform:translateX(-50%);border-radius:22px;background:linear-gradient(180deg,#89dfff,#2f83d6)}
+    .performer.player .torso{background:linear-gradient(180deg,#ffe08a,#e89c25)}
+    .arm{position:absolute;top:28%;width:11%;height:28%;border-radius:999px;background:linear-gradient(180deg,#d9edff,#6fb7ff);transform-origin:50% 12%}
+    .performer.player .arm{background:linear-gradient(180deg,#fff2b8,#f5c24b)}
+    .arm.left{left:29%;transform:rotate(18deg)}
+    .arm.right{right:29%;transform:rotate(-18deg)}
+    .leg{position:absolute;top:58%;width:11%;height:30%;border-radius:999px;background:linear-gradient(180deg,#bfdcff,#5099ef);transform-origin:50% 10%}
+    .performer.player .leg{background:linear-gradient(180deg,#ffe6a7,#f0b139)}
+    .leg.left{left:40%;transform:rotate(8deg)}
+    .leg.right{right:40%;transform:rotate(-8deg)}
+    .performer[data-pose="left"] .silhouette{transform:translate(-14px,6px) rotate(-12deg)}
+    .performer[data-pose="left"] .arm.left{transform:rotate(44deg)}
+    .performer[data-pose="left"] .arm.right{transform:rotate(4deg)}
+    .performer[data-pose="left"] .leg.left{transform:rotate(16deg)}
+    .performer[data-pose="left"] .leg.right{transform:rotate(-4deg)}
+    .performer[data-pose="right"] .silhouette{transform:translate(14px,6px) rotate(12deg)}
+    .performer[data-pose="right"] .arm.left{transform:rotate(-4deg)}
+    .performer[data-pose="right"] .arm.right{transform:rotate(-44deg)}
+    .performer[data-pose="right"] .leg.left{transform:rotate(4deg)}
+    .performer[data-pose="right"] .leg.right{transform:rotate(-16deg)}
+    .performer[data-pose="up"] .silhouette{transform:translateY(-18px) scale(1.02)}
+    .performer[data-pose="up"] .arm.left{transform:rotate(-34deg) translateY(-24%)}
+    .performer[data-pose="up"] .arm.right{transform:rotate(34deg) translateY(-24%)}
+    .performer[data-pose="up"] .leg.left{transform:rotate(2deg)}
+    .performer[data-pose="up"] .leg.right{transform:rotate(-2deg)}
+    .performer[data-pose="freeze"] .silhouette{transform:translateY(-2px) scale(1.01)}
+    .performer.ghost{opacity:.56}
+    .stage-ui{position:absolute;left:18px;right:18px;top:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;pointer-events:none}
+    .stage-note{padding:10px 12px;border-radius:16px;background:rgba(8,14,28,.5);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);font-weight:800;color:var(--sub)}
+    .feedback{position:absolute;left:50%;top:16%;transform:translateX(-50%);padding:14px 20px;border-radius:18px;background:rgba(6,12,24,.62);border:1px solid rgba(255,255,255,.12);font-weight:900;font-size:clamp(1rem,2.2vw,1.45rem);letter-spacing:.06em;opacity:0;transition:opacity .2s ease, transform .2s ease;backdrop-filter:blur(10px);pointer-events:none;white-space:nowrap}
+    .feedback.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+    .feedback.good{color:var(--good)}
+    .feedback.miss{color:var(--miss)}
+    .beat-wrap{display:grid;gap:10px}
+    .beat-rail{display:grid;grid-template-columns:repeat(var(--beats,4),1fr);gap:8px}
+    .beat{height:14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08);position:relative;overflow:hidden}
+    .beat::after{content:"";position:absolute;inset:0;width:var(--fill,0%);background:linear-gradient(90deg,rgba(122,215,255,.2),rgba(122,215,255,.88));transition:width .06s linear}
+    .beat.active{box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 18px rgba(122,215,255,.18)}
+    .beat.done::after{width:100%;background:linear-gradient(90deg,rgba(255,215,109,.4),rgba(255,215,109,.9))}
+    .audience{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;align-items:end}
+    .audience span{display:block;height:12px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.22));opacity:.3;transition:height .2s ease, opacity .2s ease, transform .2s ease}
+    .side-panel{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto;gap:14px;min-height:0}
+    .section-title{font-size:1.02rem;font-weight:900;letter-spacing:.03em}
+    .phrase-hint{color:var(--sub);line-height:1.55}
+    .phrase-cards{display:grid;gap:10px;align-content:start;overflow:auto;padding-right:4px}
+    .card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:14px;border-radius:18px;background:var(--card);border:1px solid rgba(255,255,255,.08);transition:transform .18s ease, border-color .18s ease, background .18s ease}
+    .card.active{transform:translateX(-4px);border-color:rgba(122,215,255,.38);background:rgba(122,215,255,.09)}
+    .card.done{border-color:rgba(123,247,188,.28);background:rgba(123,247,188,.08)}
+    .card.miss{border-color:rgba(255,156,166,.32);background:rgba(255,156,166,.08)}
+    .icon{width:50px;aspect-ratio:1;border-radius:16px;display:grid;place-items:center;font-size:1.34rem;font-weight:900;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04));box-shadow:var(--glow)}
+    .card-title{font-weight:900}
+    .card-sub{margin-top:4px;color:var(--sub);font-size:.92rem;line-height:1.45}
+    .badge{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.06);font-weight:900;font-size:.86rem;color:var(--accent-2);border:1px solid rgba(255,255,255,.08)}
+    .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .metric{padding:14px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .metric .k{color:var(--sub);font-size:.9rem;font-weight:700}
+    .metric .v{margin-top:6px;font-size:1.28rem;font-weight:900;color:var(--accent)}
+    .legend{color:var(--sub);line-height:1.6;font-size:.95rem}
+    .controls{display:flex;flex-wrap:wrap;gap:12px;color:var(--sub);font-weight:800;line-height:1.5}
+    .overlay{position:absolute;inset:0;display:grid;place-items:center;padding:24px;background:linear-gradient(180deg,rgba(4,9,18,.42),rgba(4,8,18,.82));backdrop-filter:blur(8px);z-index:15}
+    .overlay.hidden{display:none}
+    .dialog{width:min(620px,100%);padding:22px;border-radius:26px;background:linear-gradient(180deg,rgba(12,22,43,.96),rgba(7,13,27,.98));border:1px solid rgba(255,255,255,.12);box-shadow:var(--shadow)}
+    .dialog h2{margin:0 0 10px;font-size:clamp(1.35rem,2.2vw,1.9rem)}
+    .dialog p{margin:0;color:var(--sub);line-height:1.75}
+    .features{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+    .feature{padding:14px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .feature strong{display:block;margin-bottom:6px}
+    .start-row{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    button.primary{appearance:none;border:none;border-radius:999px;padding:13px 18px;font-weight:900;font-size:1rem;background:linear-gradient(180deg,#9fe8ff,#59b7ff);color:#032143;cursor:pointer;box-shadow:0 14px 30px rgba(72,180,255,.28)}
+    button.primary:hover{filter:brightness(1.05)}
+    .ghost-btn{padding:12px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text);font-weight:800}
+    .sound-toggle{appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--text);padding:10px 14px;border-radius:999px;font-weight:900;cursor:pointer;min-width:116px;box-shadow:0 10px 24px rgba(0,0,0,.14)}
+    .sound-toggle:hover{filter:brightness(1.06)}
+    .sound-toggle:disabled{opacity:.55;cursor:default;filter:none}
+    .result-box{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+    .result-card{padding:16px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .result-card .big{margin-top:8px;font-size:1.5rem;font-weight:900}
+    .tiny{margin-top:12px;font-size:.9rem;color:var(--sub);line-height:1.6}
+
+    .prep-screen{background:rgba(0,0,0,.85);backdrop-filter:none;z-index:18}
+    .prep-card{
+      width:min(560px,100%);
+      background:#222;
+      padding:30px;
+      border-radius:15px;
+      border:2px solid #444;
+      text-align:center;
+      box-shadow:0 0 20px rgba(0,210,252,0.3);
+      font-family:'Courier New',Courier,monospace;
+    }
+    .prep-logo{color:#00d2fc;margin:0 0 6px;font-size:clamp(2rem,4vw,2.8rem);letter-spacing:.06em}
+    .prep-subline{margin:0;color:#8f98ab;font-size:.95rem;line-height:1.6}
+    .prep-copy{margin:18px 0 0;color:#d7e6ff;line-height:1.75;text-align:left;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+    .input-group{
+      display:flex;flex-direction:column;gap:15px;margin:20px 0;
+      text-align:left;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    }
+    .prep-option{
+      display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:14px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      cursor:pointer;font-size:1.05rem;transition:border-color .15s ease, transform .15s ease, background .15s ease;
+    }
+    .prep-option.selected{border-color:rgba(0,210,252,.6);background:rgba(0,210,252,.12);transform:translateY(-1px)}
+    .prep-option input[type="radio"]{transform:scale(1.2);margin:0}
+    .prep-status{
+      margin-top:6px;padding:12px 14px;border-radius:14px;text-align:left;
+      border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);
+      color:#dbe6f8;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.65;
+    }
+    .prep-status.ok{border-color:rgba(123,247,188,.32);background:rgba(123,247,188,.12)}
+    .prep-status.ng{border-color:rgba(255,156,166,.32);background:rgba(255,156,166,.12)}
+    .prep-status.wait{border-color:rgba(122,215,255,.28);background:rgba(122,215,255,.10)}
+    .start-race-btn{
+      background:#e94560 !important;color:white !important;border:none;padding:15px 40px;
+      font-size:1.5rem;font-weight:bold;border-radius:50px;cursor:pointer;
+      transition:transform 0.2s, filter .2s;box-shadow:none;margin-top:20px;
+      font-family:'Courier New',Courier,monospace;
+    }
+    .start-race-btn:hover{transform:scale(1.05);background:#ff4d6d !important}
+    .start-race-btn:disabled{opacity:.45;cursor:not-allowed;transform:none !important;filter:saturate(.6)}
+    .prep-tip{margin-top:16px;color:#aeb9ca;line-height:1.7;text-align:left;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+    .pulse{animation:pulse 0.45s ease}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+    @media (max-width:960px){
+      body{padding:10px}
+      #app{height:calc(100dvh - 20px);padding:14px}
+      .main-grid{grid-template-columns:1fr}
+      .side-panel{grid-template-rows:auto auto auto auto auto}
+      .stage{min-height:360px}
+      .performer{width:min(34%,210px)}
+    }
+    @media (max-width:720px){
+      .topbar{align-items:flex-start;flex-direction:column}
+      .hud{width:100%;justify-content:flex-start}
+      .pill{min-width:0;flex:1}
+      .features,.result-box,.metrics{grid-template-columns:1fr}
+      .stage{min-height:320px}
+      .performer.demo{left:6%}
+      .performer.player{right:6%}
+      .icon{width:44px}
+    }
+  </style>
+</head>
+<body>
+  <a class="home-btn" href="./index.html">← ゲーム選択</a>
+
+  <main id="app">
+    <section class="panel topbar">
+      <div>
+        <div class="title">たいかんグルーヴ</div>
+        <div class="sub">見本を見てから、ゆっくり大きく決める。テンポよりも、<strong>準備・キープ・静止</strong>の気持ちよさを評価する体幹リズムゲームです。</div>
+      </div>
+      <div class="hud">
+        <div class="pill">BPM <span id="bpmLabel">78</span></div>
+        <div class="pill">スコア <span id="scoreLabel">0</span></div>
+        <div class="pill">フロー <span id="flowLabel">0%</span></div>
+        <div class="pill">フレーズ <span id="phraseLabel">0 / 8</span></div>
+        <button id="soundToggle" class="sound-toggle" type="button" aria-pressed="true">🔊 音 ON</button>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <section class="panel stage-panel">
+        <div class="phase-strip">
+          <div id="phaseBanner" class="phase-banner">↑ / Enter / Space でスタート</div>
+          <div class="microcopy" id="microcopy">見本の後に同じフレーズをゆっくり再現します。</div>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="spotlight left"></div>
+          <div class="spotlight right"></div>
+          <div class="stage-ui">
+            <div class="stage-note" id="roundNote">体幹で操作する前提なので、判定は広めです。</div>
+            <div class="stage-note" id="targetNote">左 / 右 / 上 / 静止</div>
+          </div>
+
+          <div id="feedback" class="feedback">NICE HOLD</div>
+
+          <div id="demoPerformer" class="performer demo active" data-pose="neutral">
+            <div class="ring"></div>
+            <div class="silhouette">
+              <div class="head"></div>
+              <div class="torso"></div>
+              <div class="arm left"></div>
+              <div class="arm right"></div>
+              <div class="leg left"></div>
+              <div class="leg right"></div>
+            </div>
+            <div class="name">お手本</div>
+          </div>
+
+          <div id="playerPerformer" class="performer player ghost" data-pose="neutral">
+            <div class="ring"></div>
+            <div class="silhouette">
+              <div class="head"></div>
+              <div class="torso"></div>
+              <div class="arm left"></div>
+              <div class="arm right"></div>
+              <div class="leg left"></div>
+              <div class="leg right"></div>
+            </div>
+            <div class="name">あなた</div>
+          </div>
+        </div>
+
+        <div class="beat-wrap">
+          <div id="beatRail" class="beat-rail" style="--beats:4"></div>
+          <div id="audience" class="audience"></div>
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div>
+          <div class="section-title">このゲームの肝</div>
+          <div class="phrase-hint">速い連打ではなく、<strong>フレーズを覚えてから決める</strong>、<strong>静止を守る</strong>、<strong>長く安定してキープする</strong>ことが気持ちよさになります。</div>
+        </div>
+
+        <div>
+          <div class="section-title">今回のフレーズ</div>
+          <div class="phrase-hint">見本フェーズは予告編。本番フェーズで同じ並びを再現します。</div>
+        </div>
+
+        <div id="phraseCards" class="phrase-cards"></div>
+
+        <div class="metrics">
+          <div class="metric"><div class="k">タイミング平均</div><div id="timingMetric" class="v">0%</div></div>
+          <div class="metric"><div class="k">キープ平均</div><div id="holdMetric" class="v">0%</div></div>
+          <div class="metric"><div class="k">成功フレーズ</div><div id="phraseMetric" class="v">0</div></div>
+          <div class="metric"><div class="k">最大コンボ</div><div id="comboMetric" class="v">0</div></div>
+        </div>
+
+        <div class="legend">操作は仮入力です。<strong>← / →</strong> で左右に傾く、<strong>↑ / Space</strong> で上に伸びる、<strong>何も押さない</strong> で静止。<br>体幹センサーとつなぐ場合は <code>window.setBodyPose('left'|'right'|'up'|'neutral')</code> を呼べば差し替えできます。</div>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <div class="controls">← → : 左右の体重移動 / ↑ or Space : キメ・伸びる / 長押し : キープ / 何も押さない : 静止 / Esc or Start : 戻る / Enter : スタート・リトライ</div>
+    </section>
+
+    <div id="overlay" class="overlay prep-screen"></div>
+  </main>
+
+  <script>
+    const APP_CONFIG = {
+      title: 'たいかんグルーヴ',
+      confirmKeys: ['Enter', ' ', 'ArrowUp'],
+      backKeys: ['Escape'],
+      bpm: 78,
+      sessionLength: 8,
+      earlyWindowRatio: 0.34,
+      lateWindowRatio: 0.42,
+      hitGraceRatio: 0.18,
+      previewGapBeats: 0.5,
+      resultGapBeats: 0.8
+    };
+
+    const ACTION_LIBRARY = {
+      leftTap: { kind:'tap', pose:'left', beats:1, icon:'←', title:'左にキメる', sub:'タイミングで左へ傾く' },
+      rightTap:{ kind:'tap', pose:'right', beats:1, icon:'→', title:'右にキメる', sub:'タイミングで右へ傾く' },
+      upTap:   { kind:'tap', pose:'up', beats:1, icon:'↑', title:'上に伸びる', sub:'体幹を締めて上へ' },
+      leftHold:{ kind:'hold', pose:'left', beats:2, icon:'←⏸', title:'左キープ', sub:'左へ傾いたまま2拍保つ' },
+      rightHold:{kind:'hold', pose:'right', beats:2, icon:'→⏸', title:'右キープ', sub:'右へ傾いたまま2拍保つ' },
+      upHold:  { kind:'hold', pose:'up', beats:2, icon:'↑⏸', title:'上キープ', sub:'伸びた姿勢を2拍保つ' },
+      freeze1: { kind:'freeze', pose:'neutral', beats:1, icon:'✦', title:'静止', sub:'何も押さずに止まる' },
+      freeze2: { kind:'freeze', pose:'neutral', beats:2, icon:'❄', title:'静止キープ', sub:'2拍まるごと止まる' }
+    };
+
+    const PHRASE_LIBRARY = [
+      ['leftTap','rightTap','upHold'],
+      ['freeze1','leftHold','upTap'],
+      ['rightTap','freeze1','leftTap','upTap'],
+      ['upTap','leftTap','freeze1','rightTap'],
+      ['leftHold','freeze1','rightTap'],
+      ['rightHold','freeze1','upTap'],
+      ['freeze1','upHold','leftTap'],
+      ['leftTap','freeze1','rightHold'],
+      ['upTap','freeze2','leftTap'],
+      ['rightTap','leftTap','freeze1','upTap']
+    ];
+
+    const dom = {
+      bpmLabel: document.getElementById('bpmLabel'),
+      scoreLabel: document.getElementById('scoreLabel'),
+      flowLabel: document.getElementById('flowLabel'),
+      phraseLabel: document.getElementById('phraseLabel'),
+      phaseBanner: document.getElementById('phaseBanner'),
+      microcopy: document.getElementById('microcopy'),
+      roundNote: document.getElementById('roundNote'),
+      targetNote: document.getElementById('targetNote'),
+      feedback: document.getElementById('feedback'),
+      beatRail: document.getElementById('beatRail'),
+      audience: document.getElementById('audience'),
+      phraseCards: document.getElementById('phraseCards'),
+      timingMetric: document.getElementById('timingMetric'),
+      holdMetric: document.getElementById('holdMetric'),
+      phraseMetric: document.getElementById('phraseMetric'),
+      comboMetric: document.getElementById('comboMetric'),
+      soundToggle: document.getElementById('soundToggle'),
+      demoPerformer: document.getElementById('demoPerformer'),
+      playerPerformer: document.getElementById('playerPerformer'),
+      overlay: document.getElementById('overlay'),
+      startButton: null
+    };
+
+    const audio = {
+      ctx: null,
+      enabled: false,
+      userMuted: false,
+      master: null,
+      musicBus: null,
+      sfxBus: null,
+      noiseBuffer: null,
+      nextStepTime: 0,
+      currentStep: 0,
+      musicMode: 'idle'
+    };
+
+    const state = {
+      mode: 'idle',
+      beatMs: 60000 / APP_CONFIG.bpm,
+      score: 0,
+      flow: 0,
+      phraseIndex: 0,
+      combo: 0,
+      maxCombo: 0,
+      successfulPhrases: 0,
+      timingSamples: [],
+      holdSamples: [],
+      currentPose: 'neutral',
+      previousPose: 'neutral',
+      poseChangedAt: performance.now(),
+      externalPose: null,
+      externalPoseUpdatedAt: 0,
+      keyboard: { left:false, right:false, up:false },
+      gamepad: { left:false, right:false, up:false, start:false },
+      inputMode: 'keyboard',
+      gamepadConnected: false,
+      gamepadLabel: '',
+      currentPhrase: null,
+      previewStart: 0,
+      performStart: 0,
+      interludeUntil: 0,
+      resultSummary: null,
+      feedbackUntil: 0,
+      lastFrameAt: performance.now(),
+      lastBeatNotified: -1
+    };
+
+    dom.bpmLabel.textContent = APP_CONFIG.bpm;
+
+    function cloneAction(key, index) {
+      const base = ACTION_LIBRARY[key];
+      return {
+        id: `${key}-${index}-${Math.random().toString(36).slice(2, 7)}`,
+        key,
+        index,
+        kind: base.kind,
+        pose: base.pose,
+        beats: base.beats,
+        icon: base.icon,
+        title: base.title,
+        sub: base.sub,
+        offsetBeats: 0,
+        status: 'pending',
+        started: false,
+        hitTime: null,
+        matchMs: 0,
+        sampleMs: 0,
+        stability: 0,
+        timingQuality: 0,
+        score: 0,
+        previewCuePlayed: false,
+        performCuePlayed: false,
+        startTime: 0,
+        endTime: 0,
+        broken: false
+      };
+    }
+
+    function buildPhrase(keys) {
+      const actions = keys.map(cloneAction);
+      let cursor = 0;
+      actions.forEach(action => {
+        action.offsetBeats = cursor;
+        cursor += action.beats;
+      });
+      return {
+        actions,
+        totalBeats: cursor,
+        previewDuration: cursor * state.beatMs,
+        performDuration: cursor * state.beatMs,
+      };
+    }
+
+    function pickPhrase(index) {
+      const raw = PHRASE_LIBRARY[index % PHRASE_LIBRARY.length];
+      return buildPhrase(raw);
+    }
+
+    function createBeatRail(totalBeats) {
+      dom.beatRail.innerHTML = '';
+      dom.beatRail.style.setProperty('--beats', totalBeats);
+      for (let i = 0; i < totalBeats; i += 1) {
+        const beat = document.createElement('div');
+        beat.className = 'beat';
+        beat.dataset.index = String(i);
+        beat.style.setProperty('--fill', '0%');
+        dom.beatRail.appendChild(beat);
+      }
+    }
+
+    function createAudience() {
+      dom.audience.innerHTML = '';
+      for (let i = 0; i < 8; i += 1) {
+        const bar = document.createElement('span');
+        bar.style.height = `${10 + i * 3}px`;
+        dom.audience.appendChild(bar);
+      }
+    }
+
+    function updateAudience() {
+      const bars = [...dom.audience.children];
+      const lift = Math.round(state.flow / 12.5);
+      bars.forEach((bar, index) => {
+        const active = index < lift;
+        const base = 12 + index * 3;
+        const extra = active ? 14 + Math.sin((performance.now() / 140) + index) * 6 : 0;
+        bar.style.height = `${Math.max(10, base + extra)}px`;
+        bar.style.opacity = active ? '0.96' : '0.28';
+        bar.style.transform = active ? 'translateY(-3px)' : 'translateY(0px)';
+      });
+    }
+
+    function renderPhraseCards() {
+      dom.phraseCards.innerHTML = '';
+      if (!state.currentPhrase) return;
+      state.currentPhrase.actions.forEach(action => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.id = `card-${action.id}`;
+        card.innerHTML = `
+          <div class="icon">${action.icon}</div>
+          <div>
+            <div class="card-title">${action.title}</div>
+            <div class="card-sub">${action.sub}</div>
+          </div>
+          <div class="badge">${action.beats}拍</div>
+        `;
+        dom.phraseCards.appendChild(card);
+      });
+    }
+
+    function setCardState(action, status) {
+      const card = document.getElementById(`card-${action.id}`);
+      if (!card) return;
+      card.classList.remove('active', 'done', 'miss');
+      if (status === 'active') card.classList.add('active');
+      if (status === 'done') card.classList.add('done');
+      if (status === 'miss') card.classList.add('miss');
+    }
+
+    function updateHUD() {
+      dom.scoreLabel.textContent = Math.round(state.score).toLocaleString('ja-JP');
+      dom.flowLabel.textContent = `${Math.round(state.flow)}%`;
+      dom.phraseLabel.textContent = `${Math.min(state.phraseIndex, APP_CONFIG.sessionLength)} / ${APP_CONFIG.sessionLength}`;
+      const timingAvg = state.timingSamples.length ? Math.round(avg(state.timingSamples) * 100) : 0;
+      const holdAvg = state.holdSamples.length ? Math.round(avg(state.holdSamples) * 100) : 0;
+      dom.timingMetric.textContent = `${timingAvg}%`;
+      dom.holdMetric.textContent = `${holdAvg}%`;
+      dom.phraseMetric.textContent = String(state.successfulPhrases);
+      dom.comboMetric.textContent = String(state.maxCombo);
+    }
+
+    function avg(list) {
+      return list.reduce((sum, v) => sum + v, 0) / Math.max(1, list.length);
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function gradeLabel(value) {
+      if (value >= 0.92) return 'PERFECT';
+      if (value >= 0.76) return 'NICE';
+      if (value >= 0.52) return 'OK';
+      return 'MISS';
+    }
+
+    function scoreTone(value) {
+      if (value >= 0.76) return 'good';
+      return value >= 0.52 ? '' : 'miss';
+    }
+
+    function showFeedback(text, tone = '') {
+      dom.feedback.textContent = text;
+      dom.feedback.className = `feedback show ${tone}`.trim();
+      state.feedbackUntil = performance.now() + 820;
+    }
+
+    function clearFeedbackIfNeeded(now) {
+      if (now > state.feedbackUntil) {
+        dom.feedback.className = 'feedback';
+      }
+    }
+
+    const AUDIO_NOTES = {
+      G2: 98,
+      A2: 110,
+      B2: 123.47,
+      C3: 130.81,
+      D3: 146.83,
+      E3: 164.81,
+      G3: 196,
+      A3: 220,
+      B3: 246.94,
+      C4: 261.63,
+      D4: 293.66,
+      E4: 329.63,
+      G4: 392,
+      A4: 440,
+      B4: 493.88,
+      C5: 523.25,
+      D5: 587.33,
+      E5: 659.25,
+      G5: 783.99,
+      A5: 880
+    };
+
+    const MUSIC_PROGRESSION = [
+      { bass: AUDIO_NOTES.A2, chord: [AUDIO_NOTES.A3, AUDIO_NOTES.C4, AUDIO_NOTES.E4] },
+      { bass: AUDIO_NOTES.G2, chord: [AUDIO_NOTES.G3, AUDIO_NOTES.B3, AUDIO_NOTES.D4] },
+      { bass: AUDIO_NOTES.C3, chord: [AUDIO_NOTES.C4, AUDIO_NOTES.E4, AUDIO_NOTES.G4] },
+      { bass: AUDIO_NOTES.D3, chord: [AUDIO_NOTES.D4, AUDIO_NOTES.G4, AUDIO_NOTES.A4] }
+    ];
+
+    function updateSoundToggle() {
+      if (!dom.soundToggle) return;
+      const supported = !!(window.AudioContext || window.webkitAudioContext);
+      if (!supported) {
+        dom.soundToggle.textContent = '🔇 音なし';
+        dom.soundToggle.disabled = true;
+        dom.soundToggle.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      const on = !audio.userMuted;
+      dom.soundToggle.textContent = on ? '🔊 音 ON' : '🔈 音 OFF';
+      dom.soundToggle.setAttribute('aria-pressed', String(on));
+    }
+
+    function ensureAudio() {
+      if (audio.ctx) return;
+      try {
+        audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = audio.ctx;
+        const master = ctx.createGain();
+        const musicBus = ctx.createGain();
+        const sfxBus = ctx.createGain();
+        const compressor = ctx.createDynamicsCompressor();
+        compressor.threshold.value = -18;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 3;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.18;
+        master.gain.value = 0.86;
+        musicBus.gain.value = 0.0001;
+        sfxBus.gain.value = 0.92;
+        musicBus.connect(master);
+        sfxBus.connect(master);
+        master.connect(compressor);
+        compressor.connect(ctx.destination);
+        audio.master = master;
+        audio.musicBus = musicBus;
+        audio.sfxBus = sfxBus;
+        audio.enabled = true;
+        audio.nextStepTime = ctx.currentTime + 0.06;
+        audio.currentStep = 0;
+      } catch (error) {
+        audio.enabled = false;
+      }
+      updateSoundToggle();
+    }
+
+    function getNoiseBuffer() {
+      if (audio.noiseBuffer || !audio.ctx) return audio.noiseBuffer;
+      const buffer = audio.ctx.createBuffer(1, audio.ctx.sampleRate, audio.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i += 1) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      audio.noiseBuffer = buffer;
+      return buffer;
+    }
+
+    function connectChain(source, { bus = 'sfx', pan = 0, filterType = null, filterFreq = 1400, q = 0.8 } = {}) {
+      if (!audio.ctx) return;
+      let tail = source;
+      if (filterType) {
+        const filter = audio.ctx.createBiquadFilter();
+        filter.type = filterType;
+        filter.frequency.value = filterFreq;
+        filter.Q.value = q;
+        tail.connect(filter);
+        tail = filter;
+      }
+      if (typeof audio.ctx.createStereoPanner === 'function') {
+        const panner = audio.ctx.createStereoPanner();
+        panner.pan.value = clamp(pan, -1, 1);
+        tail.connect(panner);
+        tail = panner;
+      }
+      tail.connect(bus === 'music' ? audio.musicBus : audio.sfxBus);
+    }
+
+    function toneAt(freq, time, duration = 0.1, options = {}) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const {
+        gain = 0.03,
+        wave = 'triangle',
+        endFreq = null,
+        bus = 'sfx',
+        pan = 0,
+        attack = 0.003,
+        filterType = null,
+        filterFreq = 1600,
+        q = 0.8,
+        detune = 0
+      } = options;
+      const osc = audio.ctx.createOscillator();
+      const amp = audio.ctx.createGain();
+      osc.type = wave;
+      osc.frequency.setValueAtTime(freq, time);
+      if (endFreq) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(8, endFreq), time + duration);
+      }
+      if (detune) osc.detune.value = detune;
+      amp.gain.setValueAtTime(0.0001, time);
+      amp.gain.linearRampToValueAtTime(gain, time + attack);
+      amp.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      osc.connect(amp);
+      connectChain(amp, { bus, pan, filterType, filterFreq, q });
+      osc.start(time);
+      osc.stop(time + duration + 0.05);
+    }
+
+    function noiseAt(time, duration = 0.05, options = {}) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const {
+        gain = 0.015,
+        bus = 'music',
+        pan = 0,
+        filterType = 'highpass',
+        filterFreq = 4200,
+        q = 0.7
+      } = options;
+      const source = audio.ctx.createBufferSource();
+      const amp = audio.ctx.createGain();
+      source.buffer = getNoiseBuffer();
+      amp.gain.setValueAtTime(0.0001, time);
+      amp.gain.linearRampToValueAtTime(gain, time + 0.002);
+      amp.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      source.connect(amp);
+      connectChain(amp, { bus, pan, filterType, filterFreq, q });
+      source.start(time);
+      source.stop(time + duration + 0.03);
+    }
+
+    function kickAt(time, gain = 0.048, bus = 'music') {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const osc = audio.ctx.createOscillator();
+      const amp = audio.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(148, time);
+      osc.frequency.exponentialRampToValueAtTime(46, time + 0.18);
+      amp.gain.setValueAtTime(gain, time);
+      amp.gain.exponentialRampToValueAtTime(0.0001, time + 0.19);
+      osc.connect(amp);
+      connectChain(amp, { bus, filterType: 'lowpass', filterFreq: 180 });
+      osc.start(time);
+      osc.stop(time + 0.22);
+    }
+
+    function snareAt(time, gain = 0.016) {
+      noiseAt(time, 0.11, { gain, bus: 'music', filterType: 'bandpass', filterFreq: 1900, q: 0.6 });
+      toneAt(188, time, 0.07, { gain: gain * 0.78, wave: 'triangle', bus: 'music', filterType: 'highpass', filterFreq: 150 });
+    }
+
+    function hatAt(time, gain = 0.0065) {
+      noiseAt(time, 0.03, { gain, bus: 'music', filterType: 'highpass', filterFreq: 6800, q: 0.7 });
+    }
+
+    function bassAt(time, freq, duration = 0.22, gain = 0.018) {
+      toneAt(freq, time, duration, { gain, bus: 'music', wave: 'triangle', filterType: 'lowpass', filterFreq: 560, q: 0.75 });
+      toneAt(freq / 2, time, duration * 0.88, { gain: gain * 0.62, bus: 'music', wave: 'sine', filterType: 'lowpass', filterFreq: 260 });
+    }
+
+    function chordAt(time, freqs, duration = 1.1, gain = 0.0125) {
+      freqs.forEach((freq, index) => {
+        toneAt(freq, time, duration, {
+          gain: gain * (index === 0 ? 1 : 0.9),
+          bus: 'music',
+          wave: index === 0 ? 'sine' : 'triangle',
+          attack: 0.05,
+          filterType: 'lowpass',
+          filterFreq: 1500,
+          detune: index === 2 ? 4 : 0
+        });
+      });
+    }
+
+    function desiredMusicMode() {
+      if (state.mode === 'preview') return 'preview';
+      if (state.mode === 'perform') return 'perform';
+      if (state.mode === 'interlude') return 'interlude';
+      return 'idle';
+    }
+
+    function updateMusicMix() {
+      if (!audio.ctx || !audio.enabled || !audio.musicBus) return;
+      const mode = desiredMusicMode();
+      if (mode !== audio.musicMode) audio.musicMode = mode;
+      const target = audio.userMuted ? 0.0001 : (
+        mode === 'perform' ? 0.11 :
+        mode === 'preview' ? 0.072 :
+        mode === 'interlude' ? 0.082 : 0.0001
+      );
+      audio.musicBus.gain.cancelScheduledValues(audio.ctx.currentTime);
+      audio.musicBus.gain.setTargetAtTime(target, audio.ctx.currentTime, 0.08);
+    }
+
+    function scheduleMusicStep(step, time) {
+      const stepInBar = step % 8;
+      const barIndex = Math.floor(step / 8) % MUSIC_PROGRESSION.length;
+      const phrase = MUSIC_PROGRESSION[barIndex];
+      const mode = desiredMusicMode();
+      const preview = mode === 'preview';
+      const perform = mode === 'perform';
+      const interlude = mode === 'interlude';
+
+      if (stepInBar === 0) {
+        kickAt(time, preview ? 0.036 : 0.05, 'music');
+        chordAt(time, phrase.chord, preview ? 0.92 : 1.18, preview ? 0.009 : 0.013);
+        bassAt(time, phrase.bass, 0.24, preview ? 0.014 : 0.019);
+      }
+      if (stepInBar === 2 && perform) {
+        bassAt(time, phrase.bass * 1.12246, 0.16, 0.012);
+      }
+      if (stepInBar === 4) {
+        if (preview) {
+          toneAt(AUDIO_NOTES.A4, time, 0.05, { gain: 0.008, wave: 'triangle', bus: 'music', filterType: 'lowpass', filterFreq: 1200 });
+        } else {
+          snareAt(time, interlude ? 0.013 : 0.016);
+        }
+        bassAt(time, phrase.bass * (barIndex % 2 === 0 ? 1.1892 : 1), 0.18, preview ? 0.012 : 0.015);
+      }
+      if (stepInBar === 6 && (perform || interlude)) {
+        kickAt(time, 0.024, 'music');
+      }
+      hatAt(time, stepInBar % 2 === 0 ? 0.0056 : 0.0046);
+      if (perform && stepInBar === 7) {
+        hatAt(time + 0.03, 0.0036);
+      }
+    }
+
+    function scheduleMusic() {
+      if (!audio.ctx || !audio.enabled) return;
+      updateMusicMix();
+      const mode = desiredMusicMode();
+      if (audio.userMuted || mode === 'idle' || mode === 'result') {
+        audio.nextStepTime = audio.ctx.currentTime + 0.06;
+        return;
+      }
+      const stepDuration = (60 / APP_CONFIG.bpm) / 2;
+      const lookAhead = audio.ctx.currentTime + 0.18;
+      while (audio.nextStepTime < lookAhead) {
+        scheduleMusicStep(audio.currentStep, audio.nextStepTime);
+        audio.currentStep = (audio.currentStep + 1) % 32;
+        audio.nextStepTime += stepDuration;
+      }
+    }
+
+    function actionPan(action) {
+      if (action.pose === 'left') return -0.42;
+      if (action.pose === 'right') return 0.42;
+      return 0;
+    }
+
+    function actionBaseFreq(action) {
+      if (action.pose === 'left') return AUDIO_NOTES.G4;
+      if (action.pose === 'right') return AUDIO_NOTES.C5;
+      if (action.pose === 'up') return AUDIO_NOTES.E5;
+      return AUDIO_NOTES.A4;
+    }
+
+    function cueActionSound(action, phase = 'preview') {
+      if (!audio.ctx || !audio.enabled || audio.userMuted || !action) return;
+      const t = audio.ctx.currentTime + 0.01;
+      const base = actionBaseFreq(action);
+      const pan = actionPan(action);
+      const scale = phase === 'preview' ? 1 : 0.85;
+      if (action.kind === 'freeze') {
+        toneAt(AUDIO_NOTES.A4, t, 0.05, { gain: 0.014 * scale, wave: 'sine', pan });
+        noiseAt(t, 0.018, { gain: 0.0035 * scale, bus: 'sfx', filterType: 'highpass', filterFreq: 5200 });
+        if (action.beats > 1) {
+          toneAt(AUDIO_NOTES.C5, t + 0.11, 0.045, { gain: 0.011 * scale, wave: 'sine' });
+        }
+        return;
+      }
+      if (action.kind === 'hold') {
+        toneAt(base, t, 0.08, { gain: 0.02 * scale, wave: 'triangle', pan, filterType: 'lowpass', filterFreq: 1900 });
+        toneAt(base * 1.12246, t + 0.1, 0.12, { gain: 0.016 * scale, wave: 'triangle', pan, filterType: 'lowpass', filterFreq: 1800 });
+        return;
+      }
+      toneAt(base, t, 0.075, { gain: 0.022 * scale, wave: 'triangle', pan, filterType: 'lowpass', filterFreq: 2100 });
+    }
+
+    function playJudgementSound(action, quality, success) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const t = audio.ctx.currentTime + 0.006;
+      if (!success) {
+        toneAt(184, t, 0.09, { gain: 0.028, wave: 'sawtooth', filterType: 'lowpass', filterFreq: 950 });
+        noiseAt(t, 0.04, { gain: 0.004, bus: 'sfx', filterType: 'bandpass', filterFreq: 880, q: 0.6 });
+        return;
+      }
+      const base = actionBaseFreq(action);
+      const pan = actionPan(action);
+      const sparkle = quality >= 0.88 ? 2 : quality >= 0.7 ? 1.5 : 1.2599;
+      toneAt(action.kind === 'freeze' ? AUDIO_NOTES.A4 : base, t, 0.07, {
+        gain: 0.023 + quality * 0.012,
+        wave: action.kind === 'freeze' ? 'sine' : 'triangle',
+        pan,
+        filterType: 'lowpass',
+        filterFreq: 2300
+      });
+      if (action.kind === 'hold') {
+        toneAt(base * 1.12246, t + 0.085, 0.1, { gain: 0.019 + quality * 0.008, wave: 'triangle', pan, filterType: 'lowpass', filterFreq: 2100 });
+        if (quality > 0.84) {
+          toneAt(base * sparkle, t + 0.165, 0.075, { gain: 0.013, wave: 'sine', pan });
+        }
+      } else {
+        toneAt(base * sparkle, t + 0.06, 0.055, { gain: 0.012 + quality * 0.006, wave: 'sine', pan });
+      }
+      if (action.kind === 'freeze' && quality > 0.8) {
+        noiseAt(t + 0.02, 0.02, { gain: 0.0028, bus: 'sfx', filterType: 'highpass', filterFreq: 5600 });
+      }
+    }
+
+    function phraseResultSound(success) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const t = audio.ctx.currentTime + 0.01;
+      if (success) {
+        toneAt(AUDIO_NOTES.A4, t, 0.09, { gain: 0.023, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.C5, t + 0.08, 0.09, { gain: 0.02, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.E5, t + 0.16, 0.12, { gain: 0.018, wave: 'sine' });
+      } else {
+        toneAt(AUDIO_NOTES.C4, t, 0.09, { gain: 0.024, wave: 'sawtooth', filterType: 'lowpass', filterFreq: 1200 });
+        toneAt(AUDIO_NOTES.A3, t + 0.08, 0.11, { gain: 0.018, wave: 'triangle', filterType: 'lowpass', filterFreq: 900 });
+      }
+    }
+
+    function sectionCue(type) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const t = audio.ctx.currentTime + 0.01;
+      if (type === 'preview') {
+        toneAt(AUDIO_NOTES.E4, t, 0.08, { gain: 0.018, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.A4, t + 0.07, 0.08, { gain: 0.015, wave: 'sine' });
+        return;
+      }
+      if (type === 'perform') {
+        kickAt(t, 0.032, 'sfx');
+        toneAt(AUDIO_NOTES.A4, t, 0.07, { gain: 0.022, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.C5, t + 0.06, 0.08, { gain: 0.018, wave: 'triangle' });
+        return;
+      }
+      if (type === 'start') {
+        toneAt(AUDIO_NOTES.A4, t, 0.08, { gain: 0.02, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.E5, t + 0.08, 0.09, { gain: 0.018, wave: 'triangle' });
+      }
+    }
+
+    function finishSessionSound(styleValue) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const t = audio.ctx.currentTime + 0.02;
+      const gain = styleValue >= 0.72 ? 0.018 : 0.013;
+      chordAt(t, [AUDIO_NOTES.A3, AUDIO_NOTES.C4, AUDIO_NOTES.E4], 1.4, gain);
+      toneAt(AUDIO_NOTES.E5, t + 0.16, 0.16, { gain: gain * 1.2, wave: 'sine' });
+      toneAt(styleValue >= 0.72 ? AUDIO_NOTES.A5 : AUDIO_NOTES.C5, t + 0.34, 0.22, { gain: gain, wave: 'sine' });
+    }
+
+    function toggleSound() {
+      ensureAudio();
+      if (audio.ctx?.state === 'suspended') audio.ctx.resume();
+      audio.userMuted = !audio.userMuted;
+      updateSoundToggle();
+      updateMusicMix();
+      if (!audio.userMuted) {
+        const t = audio.ctx.currentTime + 0.01;
+        toneAt(AUDIO_NOTES.E5, t, 0.06, { gain: 0.018, wave: 'triangle' });
+        toneAt(AUDIO_NOTES.A5, t + 0.06, 0.05, { gain: 0.015, wave: 'sine' });
+      }
+    }
+
+    function beatSound(localBeat) {
+      if (!audio.ctx || !audio.enabled || audio.userMuted) return;
+      const t = audio.ctx.currentTime + 0.004;
+      toneAt(localBeat === 0 ? AUDIO_NOTES.E5 : AUDIO_NOTES.C5, t, localBeat === 0 ? 0.07 : 0.045, {
+        gain: localBeat === 0 ? 0.016 : 0.009,
+        wave: 'triangle',
+        bus: 'sfx',
+        filterType: 'lowpass',
+        filterFreq: 2600
+      });
+    }
+
+    function updatePoseFromHardware(nextPose, now) {
+      if (nextPose !== state.currentPose) {
+        state.previousPose = state.currentPose;
+        state.currentPose = nextPose;
+        state.poseChangedAt = now;
+      }
+    }
+
+    function computePose(now) {
+      if (state.externalPose && now - state.externalPoseUpdatedAt < 1500) {
+        return state.externalPose;
+      }
+      const useGamepad = state.inputMode === 'gamepad';
+      if (useGamepad) {
+        if (state.gamepad.up) return 'up';
+        if (state.gamepad.left && !state.gamepad.right) return 'left';
+        if (state.gamepad.right && !state.gamepad.left) return 'right';
+        return 'neutral';
+      }
+      if (state.keyboard.up) return 'up';
+      if (state.keyboard.left && !state.keyboard.right) return 'left';
+      if (state.keyboard.right && !state.keyboard.left) return 'right';
+      return 'neutral';
+    }
+
+    function setBodyPose(pose) {
+      const allowed = ['left', 'right', 'up', 'neutral'];
+      state.externalPose = allowed.includes(pose) ? pose : 'neutral';
+      state.externalPoseUpdatedAt = performance.now();
+    }
+    window.setBodyPose = setBodyPose;
+
+
+    function firstConnectedGamepad() {
+      const pads = navigator.getGamepads ? Array.from(navigator.getGamepads() || []).filter(Boolean) : [];
+      return pads[0] || null;
+    }
+
+    function trimPadLabel(value) {
+      const label = (value || 'Gamepad').trim();
+      return label.length > 48 ? `${label.slice(0, 45)}…` : label;
+    }
+
+    function prepScreenMarkup() {
+      return `
+        <div class="prep-card">
+          <h1 class="prep-logo">TAIKAN GROOVE</h1>
+          <p class="prep-subline">フレーズを見て、体勢をキープして決める</p>
+          <p class="prep-copy">カーレースゲームと同じ準備画面の流れで、開始前に操作方法を選べるようにしました。<strong>十字キー</strong> か <strong>ゲームコントローラー</strong> を選んでから始めます。</p>
+          <div class="input-group" role="radiogroup" aria-label="入力方法">
+            <label class="prep-option" data-option="keyboard">
+              <input type="radio" name="inputMode" value="keyboard" ${state.inputMode === 'keyboard' ? 'checked' : ''}>
+              ⌨️ 十字キー / キーボード（← → と ↑ / Enter / Space）
+            </label>
+            <label class="prep-option" data-option="gamepad">
+              <input type="radio" name="inputMode" value="gamepad" ${state.inputMode === 'gamepad' ? 'checked' : ''}>
+              🎮 ゲームコントローラー（D-pad / 左スティック / A / Start）
+            </label>
+          </div>
+          <div id="prepStatus" class="prep-status wait">入力方法を選択してください。</div>
+          <button id="startButton" class="primary start-race-btn" type="button">START GROOVE</button>
+          <div class="prep-tip">十字キーの <strong>← / →</strong> で入力方法を切り替え、<strong>↑ / Enter / Space</strong> で開始できます。ゲームパッドは <strong>D-pad 左右</strong> で切り替え、<strong>A / ↑ / Start</strong> で開始できます。</div>
+        </div>
+      `;
+    }
+
+    function updatePrepScreenStatus() {
+      if (!dom.overlay || !dom.overlay.querySelector('input[name="inputMode"]')) return;
+      const pad = firstConnectedGamepad();
+      state.gamepadConnected = !!pad;
+      state.gamepadLabel = pad ? trimPadLabel(pad.id) : '';
+      dom.overlay.querySelectorAll('.prep-option').forEach((node) => {
+        const checked = node.dataset.option === state.inputMode;
+        node.classList.toggle('selected', checked);
+        const radio = node.querySelector('input[type="radio"]');
+        if (radio) radio.checked = checked;
+      });
+      const status = document.getElementById('prepStatus');
+      const startButton = document.getElementById('startButton');
+      if (!status || !startButton) return;
+      if (state.inputMode === 'keyboard') {
+        status.className = 'prep-status ok';
+        status.innerHTML = '<strong>十字キー操作</strong><br>← / → で姿勢、↑ / Enter / Space でスタートまたは上入力を使います。';
+        startButton.disabled = false;
+      } else if (pad) {
+        status.className = 'prep-status ok';
+        status.innerHTML = `<strong>ゲームパッド接続済み</strong><br>${trimPadLabel(pad.id)}<br>D-pad、左スティック、A、Start が使えます。`;
+        startButton.disabled = false;
+      } else {
+        status.className = 'prep-status ng';
+        status.innerHTML = '<strong>ゲームパッド未接続</strong><br>ブラウザによっては一度ボタンを押すと認識されます。接続後に START GROOVE が押せます。';
+        startButton.disabled = true;
+      }
+    }
+
+    function bindPrepScreenControls() {
+      dom.startButton = document.getElementById('startButton');
+      document.querySelectorAll('input[name="inputMode"]').forEach((input) => {
+        input.addEventListener('change', (event) => {
+          state.inputMode = event.target.value;
+          updatePrepScreenStatus();
+        });
+      });
+      dom.startButton?.addEventListener('click', startGame);
+      updatePrepScreenStatus();
+    }
+
+    function renderPrepScreen() {
+      dom.overlay.className = 'overlay prep-screen';
+      dom.overlay.innerHTML = prepScreenMarkup();
+      dom.overlay.classList.remove('hidden');
+      bindPrepScreenControls();
+    }
+
+    function goHome() {
+      location.href = './index.html';
+    }
+
+    function resetSession() {
+      state.mode = 'idle';
+      state.score = 0;
+      state.flow = 0;
+      state.phraseIndex = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.successfulPhrases = 0;
+      state.timingSamples = [];
+      state.holdSamples = [];
+      state.currentPhrase = null;
+      state.resultSummary = null;
+      state.lastBeatNotified = -1;
+      dom.playerPerformer.classList.add('ghost');
+      dom.demoPerformer.classList.add('active');
+      dom.playerPerformer.classList.remove('active');
+      dom.phaseBanner.textContent = '↑ / Enter / Space でスタート';
+      dom.phaseBanner.className = 'phase-banner';
+      dom.microcopy.textContent = '見本の後に同じフレーズをゆっくり再現します。';
+      dom.roundNote.textContent = '体幹で操作する前提なので、判定は広めです。';
+      dom.targetNote.textContent = '左 / 右 / 上 / 静止';
+      dom.phaseLabel = '0';
+      createBeatRail(4);
+      renderPhraseCards();
+      updateHUD();
+    }
+
+    function startGame() {
+      const selected = dom.overlay?.querySelector('input[name="inputMode"]:checked')?.value || state.inputMode;
+      state.inputMode = selected;
+      updatePrepScreenStatus();
+      if (state.inputMode === 'gamepad' && !state.gamepadConnected) {
+        showFeedback('GAMEPAD NOT READY', 'miss');
+        return;
+      }
+      ensureAudio();
+      if (audio.ctx?.state === 'suspended') audio.ctx.resume();
+      audio.currentStep = 0;
+      audio.nextStepTime = (audio.ctx?.currentTime || 0) + 0.05;
+      sectionCue('start');
+      dom.overlay.classList.add('hidden');
+      state.score = 0;
+      state.flow = 0;
+      state.phraseIndex = 0;
+      state.combo = 0;
+      state.maxCombo = 0;
+      state.successfulPhrases = 0;
+      state.timingSamples = [];
+      state.holdSamples = [];
+      beginNextPhrase(performance.now());
+      updateHUD();
+    }
+
+    function beginNextPhrase(now) {
+      if (state.phraseIndex >= APP_CONFIG.sessionLength) {
+        return finishSession();
+      }
+      state.currentPhrase = pickPhrase(state.phraseIndex);
+      state.currentPhrase.actions.forEach(action => {
+        action.startTime = 0;
+        action.endTime = 0;
+      });
+      renderPhraseCards();
+      createBeatRail(state.currentPhrase.totalBeats);
+      state.previewStart = now + 350;
+      state.performStart = state.previewStart + state.currentPhrase.previewDuration + APP_CONFIG.previewGapBeats * state.beatMs;
+      state.currentPhrase.actions.forEach(action => {
+        action.startTime = state.performStart + action.offsetBeats * state.beatMs;
+        action.endTime = action.startTime + action.beats * state.beatMs;
+      });
+      state.mode = 'preview';
+      state.lastBeatNotified = -1;
+      sectionCue('preview');
+      dom.phaseBanner.textContent = `見本 ${state.phraseIndex + 1}`;
+      dom.phaseBanner.className = 'phase-banner';
+      dom.microcopy.textContent = 'まずはお手本。次の並びを頭に入れます。';
+      dom.roundNote.textContent = `フレーズ ${state.phraseIndex + 1} / ${APP_CONFIG.sessionLength}`;
+      dom.targetNote.textContent = '見本を見て、次の本番に備える';
+      dom.demoPerformer.classList.add('active');
+      dom.playerPerformer.classList.remove('active');
+      dom.playerPerformer.classList.add('ghost');
+      dom.demoPerformer.classList.remove('ghost');
+      dom.demoPerformer.dataset.pose = 'neutral';
+      dom.playerPerformer.dataset.pose = 'neutral';
+      showFeedback('LOOK & PREPARE');
+      updateHUD();
+    }
+
+    function finishSession() {
+      state.mode = 'result';
+      const timingAvg = state.timingSamples.length ? avg(state.timingSamples) : 0;
+      const holdAvg = state.holdSamples.length ? avg(state.holdSamples) : 0;
+      const style = clamp((timingAvg * 0.45 + holdAvg * 0.35 + (state.successfulPhrases / APP_CONFIG.sessionLength) * 0.2), 0, 1);
+      state.resultSummary = {
+        score: Math.round(state.score),
+        timing: Math.round(timingAvg * 100),
+        hold: Math.round(holdAvg * 100),
+        styleLabel: style >= 0.9 ? '超・安定グルーヴ' : style >= 0.72 ? '気持ちいいキメ' : style >= 0.5 ? 'あと一歩でノる' : 'まずは大きく決めよう'
+      };
+      finishSessionSound(style);
+      dom.phaseBanner.textContent = 'RESULT';
+      dom.phaseBanner.className = 'phase-banner result';
+      dom.microcopy.textContent = 'テンポ以外の気持ちよさが出るように、フレーズ・静止・保持を混ぜています。';
+      dom.roundNote.textContent = state.resultSummary.styleLabel;
+      dom.targetNote.textContent = 'Enter / ↑ / Space でリトライ';
+      dom.demoPerformer.dataset.pose = 'up';
+      dom.playerPerformer.dataset.pose = 'up';
+      dom.demoPerformer.classList.remove('ghost');
+      dom.playerPerformer.classList.remove('ghost');
+      dom.demoPerformer.classList.add('active');
+      dom.playerPerformer.classList.add('active');
+      showResultOverlay();
+      updateHUD();
+    }
+
+    function showResultOverlay() {
+      const s = state.resultSummary;
+      dom.overlay.className = 'overlay';
+      dom.overlay.innerHTML = `
+        <div class="dialog pulse">
+          <h2>おつかれさま。ゆっくりでも、ちゃんとノれます。</h2>
+          <p>この試作では、速さではなく <strong>フレーズ記憶</strong>、<strong>姿勢の安定</strong>、<strong>静止のメリハリ</strong> を主役に置いています。体幹入力でもテンポ勝負一辺倒にならず、気持ちよさの軸を増やせます。</p>
+          <div class="result-box">
+            <div class="result-card"><div>最終スコア</div><div class="big">${s.score.toLocaleString('ja-JP')}</div></div>
+            <div class="result-card"><div>タイミング平均</div><div class="big">${s.timing}%</div></div>
+            <div class="result-card"><div>キープ平均</div><div class="big">${s.hold}%</div></div>
+          </div>
+          <div class="tiny">評価: <strong>${s.styleLabel}</strong><br>もう一度遊ぶときは Enter / ↑ / Space / A。開始前の入力方式選択に戻ります。</div>
+          <div class="start-row">
+            <button id="restartButton" class="primary">もう一回</button>
+            <div class="ghost-btn">最大コンボ ${state.maxCombo} / 成功フレーズ ${state.successfulPhrases}</div>
+          </div>
+        </div>
+      `;
+      dom.overlay.classList.remove('hidden');
+      document.getElementById('restartButton')?.addEventListener('click', () => {
+        state.mode = 'idle';
+        renderPrepScreen();
+      });
+    }
+
+    function getCurrentPreviewAction(now) {
+      if (!state.currentPhrase) return null;
+      const elapsed = clamp(now - state.previewStart, 0, state.currentPhrase.previewDuration - 1);
+      const beat = elapsed / state.beatMs;
+      return state.currentPhrase.actions.find(action => beat >= action.offsetBeats && beat < action.offsetBeats + action.beats) || null;
+    }
+
+    function getActivePerformAction(now) {
+      if (!state.currentPhrase) return null;
+      return state.currentPhrase.actions.find(action => now >= action.startTime && now < action.endTime) || null;
+    }
+
+    function previewPoseForAction(action) {
+      if (!action) return 'neutral';
+      return action.kind === 'freeze' ? 'freeze' : action.pose;
+    }
+
+    function updatePreview(now) {
+      const elapsed = now - state.previewStart;
+      if (elapsed < 0) return;
+      const previewAction = getCurrentPreviewAction(now);
+      if (previewAction && !previewAction.previewCuePlayed) {
+        previewAction.previewCuePlayed = true;
+        cueActionSound(previewAction, 'preview');
+      }
+      dom.demoPerformer.dataset.pose = previewPoseForAction(previewAction);
+      dom.playerPerformer.dataset.pose = state.currentPose;
+      state.currentPhrase.actions.forEach(action => setCardState(action, action === previewAction ? 'active' : ''));
+      dom.targetNote.textContent = previewAction ? `${previewAction.title} / ${previewAction.beats}拍` : '本番の準備';
+
+      if (elapsed >= state.currentPhrase.previewDuration + APP_CONFIG.previewGapBeats * state.beatMs) {
+        state.mode = 'perform';
+        state.lastBeatNotified = -1;
+        dom.phaseBanner.textContent = `本番 ${state.phraseIndex + 1}`;
+        dom.phaseBanner.className = 'phase-banner perform';
+        dom.microcopy.textContent = '今度はあなたの番。大きく、でも慌てずに。';
+        dom.roundNote.textContent = '狙うのは単音よりフレーズ全体の流れ';
+        dom.demoPerformer.classList.remove('active');
+        dom.playerPerformer.classList.add('active');
+        dom.playerPerformer.classList.remove('ghost');
+        dom.demoPerformer.classList.add('ghost');
+        sectionCue('perform');
+        showFeedback('YOUR TURN', '');
+      }
+    }
+
+    function resolveAction(action, timingQuality, stability, score, labelText) {
+      action.timingQuality = timingQuality;
+      action.stability = stability;
+      action.score = score;
+      action.status = score > 0 ? 'done' : 'miss';
+      setCardState(action, action.status);
+      state.timingSamples.push(timingQuality);
+      state.holdSamples.push(stability);
+      state.score += score;
+      const quality = (timingQuality * 0.6) + (stability * 0.4);
+      const label = labelText || gradeLabel(quality);
+      showFeedback(`${label} +${Math.round(score)}`, scoreTone(quality));
+      playJudgementSound(action, quality, score > 0);
+      if (quality >= 0.72) {
+        state.combo += 1;
+        state.maxCombo = Math.max(state.maxCombo, state.combo);
+      } else {
+        state.combo = 0;
+      }
+      const flowDelta = score > 0 ? 7 + quality * 4 : -9;
+      state.flow = clamp(state.flow + flowDelta, 0, 100);
+      updateHUD();
+    }
+
+    function updatePerform(now, dt) {
+      dom.demoPerformer.dataset.pose = previewPoseForAction(getActivePerformAction(now));
+      dom.playerPerformer.dataset.pose = state.currentPose;
+      const earlyWindow = state.beatMs * APP_CONFIG.earlyWindowRatio;
+      const lateWindow = state.beatMs * APP_CONFIG.lateWindowRatio;
+      const grace = state.beatMs * APP_CONFIG.hitGraceRatio;
+
+      state.currentPhrase.actions.forEach(action => {
+        const active = now >= action.startTime - earlyWindow && now <= action.endTime;
+        if (action.status === 'pending' && active) setCardState(action, 'active');
+
+        if (action.kind === 'freeze') {
+          if (now > action.startTime && action.status === 'pending') {
+            action.sampleMs += dt;
+            if (state.currentPose === 'neutral') action.matchMs += dt;
+          }
+          if (now >= action.endTime && action.status === 'pending') {
+            const stability = clamp(action.matchMs / Math.max(1, action.sampleMs), 0, 1);
+            const timingQuality = stability;
+            const score = stability >= 0.52 ? 80 + 120 * stability : 0;
+            resolveAction(action, timingQuality, stability, score, stability >= 0.9 ? 'PERFECT STOP' : gradeLabel(stability));
+          }
+          return;
+        }
+
+        if (!action.started) {
+          const poseMatches = state.currentPose === action.pose;
+          const transitionInWindow = state.poseChangedAt >= action.startTime - earlyWindow && state.poseChangedAt <= now + grace;
+          const heldIntoWindow = poseMatches && now >= action.startTime && now <= action.startTime + lateWindow && state.poseChangedAt < action.startTime - earlyWindow;
+          if (poseMatches && (transitionInWindow || heldIntoWindow)) {
+            action.started = true;
+            action.hitTime = heldIntoWindow ? action.startTime - earlyWindow : state.poseChangedAt;
+          } else if (now > action.startTime + lateWindow && action.status === 'pending') {
+            resolveAction(action, 0, 0, 0, 'MISS');
+            return;
+          }
+        }
+
+        if (action.started && action.kind === 'tap' && action.status === 'pending') {
+          const diff = Math.abs(action.hitTime - action.startTime);
+          const timingQuality = clamp(1 - (diff / (state.beatMs * 0.72)), 0, 1);
+          const stability = 1;
+          const score = timingQuality >= 0.45 ? 90 + timingQuality * 110 : 0;
+          resolveAction(action, timingQuality, stability, score);
+          return;
+        }
+
+        if (action.started && action.kind === 'hold' && action.status === 'pending') {
+          if (now > action.startTime) {
+            action.sampleMs += dt;
+            if (state.currentPose === action.pose) action.matchMs += dt;
+          }
+          if (now >= action.endTime) {
+            const diff = Math.abs(action.hitTime - action.startTime);
+            const timingQuality = clamp(1 - (diff / (state.beatMs * 0.82)), 0, 1);
+            const stability = clamp(action.matchMs / Math.max(1, action.sampleMs), 0, 1);
+            const quality = timingQuality * 0.42 + stability * 0.58;
+            const score = quality >= 0.42 ? 110 + quality * 150 : 0;
+            resolveAction(action, timingQuality, stability, score, stability >= 0.9 ? 'NICE HOLD' : gradeLabel(quality));
+          }
+        }
+      });
+
+      const activeAction = getActivePerformAction(now);
+      dom.targetNote.textContent = activeAction ? `${activeAction.title} を狙う` : 'フレーズの終わり';
+      if (now >= state.performStart + state.currentPhrase.performDuration + APP_CONFIG.resultGapBeats * state.beatMs) {
+        finalizePhrase();
+      }
+    }
+
+    function finalizePhrase() {
+      const scores = state.currentPhrase.actions.map(action => action.score > 0 ? 1 : 0);
+      const successRatio = avg(scores);
+      const phraseSuccess = successRatio >= 0.75;
+      if (phraseSuccess) {
+        state.successfulPhrases += 1;
+        const bonus = 120 + Math.round(successRatio * 180);
+        state.score += bonus;
+        state.flow = clamp(state.flow + 8, 0, 100);
+        showFeedback(`PHRASE BONUS +${bonus}`, 'good');
+        phraseResultSound(true);
+      } else {
+        showFeedback('FLOW CUT', 'miss');
+        phraseResultSound(false);
+      }
+      state.phraseIndex += 1;
+      updateHUD();
+      state.mode = 'interlude';
+      state.interludeUntil = performance.now() + state.beatMs * 0.85;
+      dom.phaseBanner.textContent = phraseSuccess ? 'キマった！' : '次で立て直し';
+      dom.phaseBanner.className = `phase-banner ${phraseSuccess ? 'result' : 'perform'}`;
+      dom.microcopy.textContent = phraseSuccess ? '単発ではなく、流れが揃うと大きく伸びます。' : '少し早くても遅くてもOK。次はもっと大きく。';
+      dom.roundNote.textContent = phraseSuccess ? 'フレーズ全体で評価' : '反応速度より予告とキープ';
+    }
+
+    function updateInterlude(now) {
+      dom.demoPerformer.dataset.pose = 'neutral';
+      dom.playerPerformer.dataset.pose = state.currentPose;
+      if (now >= state.interludeUntil) beginNextPhrase(now);
+    }
+
+    function updateBeatRail(now) {
+      const beats = [...dom.beatRail.children];
+      if (!state.currentPhrase || !beats.length) return;
+      let phaseStart = state.previewStart;
+      let elapsed = now - phaseStart;
+      let total = state.currentPhrase.totalBeats * state.beatMs;
+      if (state.mode === 'perform' || state.mode === 'interlude') {
+        phaseStart = state.performStart;
+        elapsed = now - phaseStart;
+        total = state.currentPhrase.totalBeats * state.beatMs;
+      }
+      const beatFloat = clamp(elapsed / state.beatMs, 0, state.currentPhrase.totalBeats);
+      beats.forEach((beat, index) => {
+        beat.classList.remove('active', 'done');
+        beat.style.setProperty('--fill', '0%');
+        if (beatFloat >= index + 1) {
+          beat.classList.add('done');
+          beat.style.setProperty('--fill', '100%');
+        } else if (beatFloat >= index) {
+          beat.classList.add('active');
+          beat.style.setProperty('--fill', `${clamp((beatFloat - index) * 100, 0, 100)}%`);
+        }
+      });
+      const localBeat = Math.floor(beatFloat);
+      if ((state.mode === 'preview' || state.mode === 'perform') && localBeat !== state.lastBeatNotified && localBeat < state.currentPhrase.totalBeats && elapsed >= 0) {
+        state.lastBeatNotified = localBeat;
+        beatSound(localBeat % state.currentPhrase.totalBeats);
+      }
+    }
+
+    function pollGamepad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const pad = [...pads].find(Boolean);
+      state.gamepadConnected = !!pad;
+      state.gamepadLabel = pad ? trimPadLabel(pad.id) : '';
+      if (!pad) {
+        state.gamepad.left = false;
+        state.gamepad.right = false;
+        state.gamepad.up = false;
+        state.gamepad.start = false;
+        updatePrepScreenStatus();
+        return;
+      }
+      const nextLeft = !!(pad.buttons[14]?.pressed || (pad.axes[0] || 0) < -0.35);
+      const nextRight = !!(pad.buttons[15]?.pressed || (pad.axes[0] || 0) > 0.35);
+      const nextUp = !!(pad.buttons[12]?.pressed || pad.buttons[0]?.pressed || pad.buttons[1]?.pressed || (pad.axes[1] || 0) < -0.45);
+      const nextStart = !!(pad.buttons[9]?.pressed || pad.buttons[7]?.pressed);
+
+      if ((state.mode === 'idle' || state.mode === 'result') && !dom.overlay.classList.contains('hidden')) {
+        if (nextLeft && !state.gamepad.left) {
+          state.inputMode = 'keyboard';
+          updatePrepScreenStatus();
+        }
+        if (nextRight && !state.gamepad.right) {
+          state.inputMode = 'gamepad';
+          updatePrepScreenStatus();
+        }
+        if ((nextUp && !state.gamepad.up) || (nextStart && !state.gamepad.start)) {
+          startGame();
+        }
+      } else if (nextStart && !state.gamepad.start && state.mode !== 'idle') {
+        goHome();
+      }
+
+      state.gamepad.left = nextLeft;
+      state.gamepad.right = nextRight;
+      state.gamepad.up = nextUp;
+      state.gamepad.start = nextStart;
+      updatePrepScreenStatus();
+    }
+
+    function handleKeyboardDown(event) {
+      if (event.key === 'ArrowLeft') {
+        state.keyboard.left = true;
+        if ((state.mode === 'idle' || state.mode === 'result') && !dom.overlay.classList.contains('hidden')) {
+          state.inputMode = 'keyboard';
+          updatePrepScreenStatus();
+          event.preventDefault();
+        }
+      }
+      if (event.key === 'ArrowRight') {
+        state.keyboard.right = true;
+        if ((state.mode === 'idle' || state.mode === 'result') && !dom.overlay.classList.contains('hidden')) {
+          state.inputMode = 'gamepad';
+          updatePrepScreenStatus();
+          event.preventDefault();
+        }
+      }
+      if (APP_CONFIG.confirmKeys.includes(event.key)) {
+        state.keyboard.up = true;
+      }
+      if (APP_CONFIG.backKeys.includes(event.key) && state.mode !== 'idle') goHome();
+      if (APP_CONFIG.confirmKeys.includes(event.key) && (state.mode === 'idle' || state.mode === 'result')) {
+        event.preventDefault();
+        startGame();
+      }
+    }
+
+    function handleKeyboardUp(event) {
+      if (event.key === 'ArrowLeft') state.keyboard.left = false;
+      if (event.key === 'ArrowRight') state.keyboard.right = false;
+      if (APP_CONFIG.confirmKeys.includes(event.key)) state.keyboard.up = false;
+    }
+
+    function tick(now) {
+      const dt = Math.min(40, now - state.lastFrameAt);
+      state.lastFrameAt = now;
+      pollGamepad();
+      updatePoseFromHardware(computePose(now), now);
+      dom.playerPerformer.dataset.pose = state.currentPose;
+      clearFeedbackIfNeeded(now);
+      updateAudience();
+      scheduleMusic();
+      updateBeatRail(now);
+
+      if (state.mode === 'preview') updatePreview(now);
+      if (state.mode === 'perform') updatePerform(now, dt);
+      if (state.mode === 'interlude') updateInterlude(now);
+      if (state.mode === 'idle' || state.mode === 'result') {
+        dom.demoPerformer.dataset.pose = state.mode === 'result' ? 'up' : 'neutral';
+        dom.playerPerformer.dataset.pose = state.currentPose === 'neutral' && state.mode === 'idle' ? 'neutral' : state.currentPose;
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    window.addEventListener('keydown', handleKeyboardDown);
+    window.addEventListener('keyup', handleKeyboardUp);
+    dom.soundToggle?.addEventListener('click', toggleSound);
+
+    createBeatRail(4);
+    createAudience();
+    updateSoundToggle();
+    updateHUD();
+    renderPrepScreen();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

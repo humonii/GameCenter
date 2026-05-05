@@ -1,0 +1,2369 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="game:title" content="スカイリボン・ライズ" />
+  <meta name="game:tag" content="Action" />
+  <meta name="game:cover" content="generic" />
+  <meta name="game:cover-color" content="#6b53ff" />
+  <meta name="game:emoji" content="🌌" />
+  <meta name="game:order" content="275" />
+  <title>Feeling Game | スカイリボン・ライズ</title>
+  <style>
+    :root{
+      --bg1:#081224;
+      --bg2:#0f2142;
+      --bg3:#132b4f;
+      --panel:rgba(8,16,32,.9);
+      --line:rgba(255,255,255,.12);
+      --text:#f4f7ff;
+      --sub:#c5d3f0;
+      --accent:#7de0ff;
+      --accent2:#b285ff;
+      --accent3:#ffe08a;
+      --good:#79f6b7;
+      --miss:#ff9cae;
+      --shadow:0 18px 44px rgba(0,0,0,.32);
+      --card:rgba(255,255,255,.05);
+      --glow:0 0 0 1px rgba(255,255,255,.08), 0 12px 28px rgba(0,0,0,.24);
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;
+      min-height:100%;
+      font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(125,224,255,.14), transparent 28%),
+        radial-gradient(circle at 82% 16%, rgba(178,133,255,.14), transparent 26%),
+        linear-gradient(180deg, var(--bg3), var(--bg2) 52%, var(--bg1));
+      color:var(--text);
+      overflow:hidden;
+    }
+    body{padding:14px}
+    #prep-screen{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.85);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      z-index:40;
+      padding:24px;
+    }
+    #prep-screen.hidden{display:none}
+    .prep-panel{
+      width:min(720px,100%);
+      background:#222;
+      padding:30px;
+      border-radius:15px;
+      border:2px solid #444;
+      text-align:center;
+      box-shadow:0 0 20px rgba(0,210,252,0.3);
+    }
+    .prep-title{
+      color:#00d2fc;
+      margin:0 0 6px;
+      font-size:clamp(1.7rem,3vw,2.3rem);
+      letter-spacing:.06em;
+      font-weight:900;
+    }
+    .prep-sub{
+      margin:0;
+      font-size:.95rem;
+      color:#a9b4cf;
+      line-height:1.7;
+    }
+    .prep-input-group{
+      display:flex;
+      flex-direction:column;
+      gap:15px;
+      margin:22px 0 16px;
+      text-align:left;
+    }
+    .prep-option{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      cursor:pointer;
+      font-size:1.05rem;
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+    .prep-option input[type="radio"]{
+      transform:scale(1.2);
+      margin-top:4px;
+    }
+    .prep-option small{
+      display:block;
+      color:#a9b4cf;
+      margin-top:4px;
+      line-height:1.5;
+      font-size:.86rem;
+      font-weight:700;
+    }
+    #prep-start-btn{
+      background:#e94560;
+      color:white;
+      border:none;
+      padding:15px 40px;
+      font-size:1.35rem;
+      font-weight:bold;
+      border-radius:50px;
+      cursor:pointer;
+      transition:transform .2s, filter .2s, opacity .2s;
+      margin-top:18px;
+      min-width:240px;
+    }
+    #prep-start-btn:hover{transform:scale(1.05);background:#ff4d6d}
+    #prep-start-btn:disabled{opacity:.6;cursor:not-allowed;filter:saturate(.75)}
+    .prep-status{
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:14px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      color:#c6d5ef;
+      line-height:1.65;
+      text-align:left;
+      font-weight:800;
+    }
+    .prep-status strong{color:#fff}
+    .prep-note{
+      margin-top:14px;
+      color:#97a8c8;
+      font-size:.88rem;
+      line-height:1.7;
+      text-align:left;
+    }
+    .home-btn{
+      position:fixed;top:14px;left:14px;z-index:30;
+      padding:10px 14px;border-radius:999px;text-decoration:none;color:#fff;
+      background:rgba(10,13,24,.7);border:1px solid rgba(255,255,255,.14);
+      box-shadow:0 10px 24px rgba(0,0,0,.22);backdrop-filter:blur(8px)
+    }
+    .home-btn:hover{filter:brightness(1.08)}
+    #app{
+      position:relative;
+      width:min(1200px,100%);
+      height:calc(100dvh - 28px);
+      margin:0 auto;
+      background:linear-gradient(180deg,rgba(10,18,36,.94),rgba(6,10,20,.97));
+      border:1px solid var(--line);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      padding:20px;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr) auto;
+      gap:14px;
+      overflow:hidden;
+      isolation:isolate;
+    }
+    #app::before{
+      content:"";
+      position:absolute;inset:auto -12% 72% -12%;height:46%;
+      background:radial-gradient(circle, rgba(125,224,255,.11), transparent 58%);
+      pointer-events:none;z-index:0;
+    }
+    .panel{
+      position:relative;z-index:1;
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:rgba(255,255,255,.04);
+      padding:16px;
+      overflow:hidden;
+    }
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:96px}
+    .title{font-size:clamp(1.55rem,2.4vw,2.15rem);font-weight:900;letter-spacing:.03em}
+    .sub{margin-top:6px;color:var(--sub);line-height:1.6}
+    .hud{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+    .pill{
+      min-width:118px;padding:10px 14px;border-radius:999px;
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+      font-weight:900;color:var(--sub);
+    }
+    .pill span{color:var(--accent)}
+    .main-grid{
+      display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.95fr);
+      gap:14px;min-height:0;
+    }
+    .stage-panel{
+      display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+      gap:14px;min-height:0;
+    }
+    .status-strip{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+    .phase-badge{
+      padding:10px 14px;border-radius:999px;font-weight:900;letter-spacing:.03em;
+      background:rgba(125,224,255,.11);border:1px solid rgba(125,224,255,.22);
+      box-shadow:0 0 0 1px rgba(255,255,255,.03) inset;
+    }
+    .phase-badge.success{
+      background:rgba(121,246,183,.11);border-color:rgba(121,246,183,.26);color:var(--good)
+    }
+    .phase-badge.warning{
+      background:rgba(255,156,174,.11);border-color:rgba(255,156,174,.26);color:var(--miss)
+    }
+    .microcopy{color:var(--sub);font-weight:700}
+    .stage{
+      position:relative;min-height:0;border-radius:26px;overflow:hidden;
+      border:1px solid rgba(255,255,255,.1);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,.16), transparent 26%),
+        radial-gradient(circle at 18% 24%, rgba(125,224,255,.15), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(178,133,255,.16), transparent 24%),
+        linear-gradient(180deg, rgba(31,67,110,.56), rgba(10,17,30,.92) 64%, rgba(5,7,14,.98));
+      min-height:460px;
+    }
+    .stage::before{
+      content:"";
+      position:absolute;left:0;right:0;bottom:18%;height:36%;
+      background:radial-gradient(circle at 50% 100%, rgba(125,224,255,.24), transparent 54%);
+      filter:blur(16px);
+      pointer-events:none;
+    }
+    .stage::after{
+      content:"";
+      position:absolute;left:0;right:0;bottom:0;height:30%;
+      background:linear-gradient(180deg, rgba(255,255,255,0), rgba(0,0,0,.08) 24%, rgba(0,0,0,.52));
+      pointer-events:none;
+    }
+    #fxCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+    .horizon{
+      position:absolute;left:-5%;right:-5%;bottom:12%;height:3px;
+      background:linear-gradient(90deg, transparent, rgba(125,224,255,.55), rgba(255,224,138,.65), rgba(178,133,255,.56), transparent);
+      filter:blur(.4px);opacity:.9;pointer-events:none;
+    }
+    .stage-header{
+      position:absolute;left:18px;right:18px;top:16px;display:flex;
+      justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none;
+    }
+    .stage-note{
+      padding:10px 12px;border-radius:16px;font-weight:800;color:var(--sub);
+      background:rgba(8,14,28,.5);border:1px solid rgba(255,255,255,.08);
+      backdrop-filter:blur(8px);
+    }
+    .feedback{
+      position:absolute;left:50%;top:16%;transform:translateX(-50%);
+      padding:14px 20px;border-radius:18px;white-space:nowrap;
+      background:rgba(8,13,24,.66);border:1px solid rgba(255,255,255,.1);
+      font-weight:900;font-size:clamp(1rem,2.1vw,1.45rem);letter-spacing:.06em;
+      opacity:0;transition:opacity .18s ease, transform .18s ease;
+      backdrop-filter:blur(10px);pointer-events:none;
+    }
+    .feedback.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+    .feedback.good{color:var(--good)}
+    .feedback.miss{color:var(--miss)}
+    .burst-label{
+      position:absolute;right:22px;bottom:26%;padding:10px 12px;border-radius:999px;
+      font-weight:900;letter-spacing:.08em;font-size:.86rem;
+      background:rgba(8,14,28,.48);border:1px solid rgba(255,255,255,.08);
+      color:var(--accent3);backdrop-filter:blur(8px);opacity:.86;
+    }
+    .progress-track{
+      position:absolute;left:18px;right:18px;bottom:18px;height:16px;
+      border-radius:999px;background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);overflow:hidden;z-index:4;
+    }
+    .progress-fill{
+      position:absolute;left:0;top:0;bottom:0;width:0%;
+      background:
+        linear-gradient(90deg, rgba(255,224,138,.28), rgba(125,224,255,.86), rgba(178,133,255,.86));
+      box-shadow:0 0 22px rgba(125,224,255,.28) inset;
+      transition:width .1s linear;
+    }
+    .progress-track::after{
+      content:"CHAIN TIMER";position:absolute;right:10px;top:50%;transform:translateY(-50%);
+      font-size:.66rem;font-weight:900;letter-spacing:.12em;color:rgba(255,255,255,.72)
+    }
+    .altimeter{
+      position:absolute;right:16px;top:76px;bottom:54px;width:18px;z-index:4;
+      border-radius:999px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);overflow:hidden;
+      box-shadow:inset 0 0 24px rgba(0,0,0,.28);
+    }
+    .altimeter-fill{
+      position:absolute;left:0;right:0;bottom:0;height:0%;
+      background:linear-gradient(180deg, rgba(178,133,255,.94), rgba(125,224,255,.92), rgba(255,224,138,.92));
+      box-shadow:0 0 18px rgba(125,224,255,.24);
+      transition:height .18s ease;
+    }
+    .altimeter-tip{
+      position:absolute;left:50%;transform:translate(-50%,50%);
+      bottom:0;width:34px;height:2px;border-radius:999px;background:#fff;opacity:.85;
+      box-shadow:0 0 10px rgba(255,255,255,.4);
+      transition:bottom .18s ease;
+    }
+    .rider{
+      position:absolute;left:50%;bottom:18%;width:min(30%,250px);aspect-ratio:0.95/1.26;
+      transform:translateX(-50%);
+      transform-origin:50% 84%;
+      z-index:5;filter:drop-shadow(0 18px 32px rgba(0,0,0,.3));
+      pointer-events:none;
+    }
+    .rider .glow{
+      position:absolute;left:14%;right:14%;bottom:4%;height:14%;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(125,224,255,.38), rgba(125,224,255,.07) 68%, transparent 74%);
+      filter:blur(4px);opacity:.9;
+    }
+    .rider .trail{
+      position:absolute;left:50%;bottom:13%;width:20%;height:42%;
+      transform:translateX(-50%);
+      background:linear-gradient(180deg, rgba(255,255,255,0), rgba(125,224,255,.18), rgba(178,133,255,.42), rgba(255,224,138,.12));
+      filter:blur(10px);opacity:.72;border-radius:999px;
+    }
+    .rider .body{position:absolute;inset:0}
+    .rider .head{
+      position:absolute;left:50%;top:10%;width:18%;aspect-ratio:1;border-radius:50%;
+      transform:translateX(-50%);
+      background:linear-gradient(180deg, #f7fbff, #dce8ff);
+      box-shadow:var(--glow);
+    }
+    .rider .torso{
+      position:absolute;left:50%;top:24%;width:28%;height:34%;
+      transform:translateX(-50%);
+      border-radius:22px;background:linear-gradient(180deg, #99e9ff, #579bff);
+      box-shadow:0 12px 22px rgba(56,125,255,.22);
+    }
+    .rider .arm,.rider .leg{
+      position:absolute;border-radius:999px;transform-origin:50% 10%;
+      background:linear-gradient(180deg,#eaf4ff,#7bbdff);
+      box-shadow:var(--glow);
+    }
+    .rider .arm{top:28%;width:11%;height:26%}
+    .rider .arm.left{left:30%;transform:rotate(18deg)}
+    .rider .arm.right{right:30%;transform:rotate(-18deg)}
+    .rider .leg{top:57%;width:11%;height:30%;background:linear-gradient(180deg,#d6e8ff,#56a0ff)}
+    .rider .leg.left{left:40%;transform:rotate(10deg)}
+    .rider .leg.right{right:40%;transform:rotate(-10deg)}
+    .rider .board{
+      position:absolute;left:50%;bottom:7%;width:64%;height:13%;
+      transform:translateX(-50%) rotate(-3deg);
+      border-radius:999px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.95), rgba(125,224,255,.95), rgba(178,133,255,.95), rgba(255,224,138,.94));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.16) inset,
+        0 10px 28px rgba(125,224,255,.24),
+        0 4px 18px rgba(178,133,255,.28);
+    }
+    .rider[data-pose="left"] .body{transform:translate(-12px,4px) rotate(-10deg)}
+    .rider[data-pose="left"] .arm.left{transform:rotate(44deg)}
+    .rider[data-pose="left"] .arm.right{transform:rotate(2deg)}
+    .rider[data-pose="left"] .leg.left{transform:rotate(18deg)}
+    .rider[data-pose="left"] .leg.right{transform:rotate(-4deg)}
+    .rider[data-pose="right"] .body{transform:translate(12px,4px) rotate(10deg)}
+    .rider[data-pose="right"] .arm.left{transform:rotate(-2deg)}
+    .rider[data-pose="right"] .arm.right{transform:rotate(-44deg)}
+    .rider[data-pose="right"] .leg.left{transform:rotate(4deg)}
+    .rider[data-pose="right"] .leg.right{transform:rotate(-18deg)}
+    .rider[data-pose="forward"] .body{transform:translateY(-18px) scale(1.04)}
+    .rider[data-pose="forward"] .arm.left{transform:rotate(-28deg)}
+    .rider[data-pose="forward"] .arm.right{transform:rotate(28deg)}
+    .rider[data-pose="cw"] .body{transform:rotate(18deg)}
+    .rider[data-pose="ccw"] .body{transform:rotate(-18deg)}
+    .rider.flash .board{box-shadow:0 0 0 1px rgba(255,255,255,.22) inset, 0 0 28px rgba(125,224,255,.48), 0 8px 24px rgba(178,133,255,.36)}
+    .sequence-wrap{display:grid;gap:10px}
+    .sequence-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .section-title{font-size:1.03rem;font-weight:900;letter-spacing:.03em}
+    .sequence-meta{color:var(--sub);font-weight:800}
+    .sequence-rail{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+      gap:10px;align-items:stretch;
+    }
+    .seq-card{
+      padding:12px;border-radius:18px;background:var(--card);
+      border:1px solid rgba(255,255,255,.08);
+      display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+      transition:transform .16s ease, border-color .16s ease, background .16s ease, opacity .16s ease;
+      min-height:76px;
+    }
+    .seq-card.active{
+      transform:translateY(-2px);
+      border-color:rgba(125,224,255,.36);
+      background:rgba(125,224,255,.1);
+      box-shadow:0 0 0 1px rgba(255,255,255,.04) inset, 0 10px 22px rgba(125,224,255,.12);
+    }
+    .seq-card.done{
+      border-color:rgba(121,246,183,.28);
+      background:rgba(121,246,183,.08);
+      opacity:.96;
+    }
+    .seq-card.error{
+      border-color:rgba(255,156,174,.34);
+      background:rgba(255,156,174,.09);
+      animation:shake .26s ease;
+    }
+    .seq-icon{
+      width:46px;aspect-ratio:1;border-radius:16px;display:grid;place-items:center;
+      font-size:1.34rem;font-weight:900;
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      box-shadow:var(--glow);
+    }
+    .seq-label{font-weight:900}
+    .seq-sub{margin-top:4px;color:var(--sub);font-size:.88rem}
+    .seq-no{
+      width:30px;height:30px;border-radius:999px;display:grid;place-items:center;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+      color:var(--accent3);font-weight:900;font-size:.82rem;
+    }
+    .side-panel{
+      display:grid;grid-template-rows:auto auto auto auto auto;
+      gap:14px;min-height:0;align-content:start;
+      overflow-y:auto;padding-right:4px;scrollbar-gutter:stable;
+    }
+    .side-panel::-webkit-scrollbar{width:10px}
+    .side-panel::-webkit-scrollbar-thumb{
+      background:rgba(125,224,255,.24);border-radius:999px;border:2px solid transparent;
+      background-clip:padding-box;
+    }
+    .side-panel::-webkit-scrollbar-track{background:transparent}
+    .target-card{
+      display:grid;justify-items:center;text-align:center;gap:8px;
+      padding:16px;border-radius:22px;
+      background:
+        radial-gradient(circle at top, rgba(125,224,255,.12), transparent 42%),
+        rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .target-big{
+      width:118px;aspect-ratio:1;border-radius:30px;display:grid;place-items:center;
+      font-size:2.7rem;font-weight:900;
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.1);
+      box-shadow:0 16px 32px rgba(0,0,0,.18), inset 0 0 0 1px rgba(255,255,255,.04);
+      transition:transform .16s ease, box-shadow .16s ease;
+    }
+    .target-big.pulse{transform:scale(1.05);box-shadow:0 18px 36px rgba(125,224,255,.22), inset 0 0 0 1px rgba(255,255,255,.08)}
+    .target-name{font-size:1.12rem;font-weight:900}
+    .target-hint{color:var(--sub);font-weight:700;line-height:1.5}
+    .stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .metric{
+      padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .metric .k{color:var(--sub);font-size:.9rem;font-weight:700}
+    .metric .v{margin-top:6px;font-size:1.22rem;font-weight:900;color:var(--accent)}
+    .style-card{
+      padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .style-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .style-bar{
+      margin-top:12px;height:14px;border-radius:999px;overflow:hidden;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+    }
+    .style-fill{
+      height:100%;width:0%;
+      background:linear-gradient(90deg, rgba(255,224,138,.72), rgba(125,224,255,.88), rgba(178,133,255,.88));
+      transition:width .14s ease;
+    }
+    .style-copy{margin-top:10px;color:var(--sub);font-size:.94rem;line-height:1.55}
+    .gesture-card{
+      padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .gesture-card .section-title{margin-bottom:10px}
+    .gesture-pad{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;
+      align-content:start;
+    }
+    .gesture-btn{
+      appearance:none;border:none;border-radius:18px;padding:12px 8px;
+      min-height:84px;display:grid;place-items:center;gap:6px;cursor:pointer;
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.08);color:var(--text);
+      font-weight:900;box-shadow:0 10px 22px rgba(0,0,0,.16);
+      transition:transform .12s ease, filter .12s ease, border-color .12s ease;
+    }
+    .gesture-btn:hover{filter:brightness(1.05)}
+    .gesture-btn:active,.gesture-btn.active{transform:translateY(1px) scale(.98)}
+    .gesture-btn .gicon{font-size:1.6rem}
+    .gesture-btn .gname{font-size:.92rem}
+    .gesture-btn .gkeys{font-size:.72rem;color:var(--sub);font-weight:700}
+    .legend{
+      position:relative;z-index:0;
+      padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);color:var(--sub);line-height:1.66;font-size:.94rem;
+    }
+    .legend strong{color:var(--text)}
+    .footer-controls{
+      display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;
+    }
+    .controls{color:var(--sub);font-weight:800;line-height:1.65}
+    .overlay{
+      position:absolute;inset:0;display:grid;place-items:center;padding:24px;
+      background:linear-gradient(180deg, rgba(4,9,18,.44), rgba(4,8,18,.84));
+      backdrop-filter:blur(8px);z-index:20;
+    }
+    .overlay.hidden{display:none}
+    .dialog{
+      width:min(700px,100%);padding:24px;border-radius:28px;
+      background:linear-gradient(180deg, rgba(12,22,43,.96), rgba(7,13,27,.98));
+      border:1px solid rgba(255,255,255,.12);box-shadow:var(--shadow);
+    }
+    .dialog h2{margin:0 0 10px;font-size:clamp(1.35rem,2.2vw,1.95rem)}
+    .dialog p{margin:0;color:var(--sub);line-height:1.75}
+    .features{
+      margin-top:18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px
+    }
+    .feature{
+      padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .feature strong{display:block;margin-bottom:6px}
+    .start-row{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    .controller-config{
+      margin-top:18px;padding:16px;border-radius:22px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .controller-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .controller-head strong{font-size:1rem}
+    .controller-row{margin-top:14px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+    .controller-field{flex:1 1 320px;display:grid;gap:8px;color:var(--sub);font-weight:800}
+    .controller-select{
+      appearance:none;width:100%;padding:13px 14px;border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);background:rgba(8,14,28,.82);
+      color:var(--text);font:inherit;
+    }
+    .controller-select:focus{outline:2px solid rgba(125,224,255,.22);outline-offset:2px}
+    .status-grid{margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .status-chip{
+      padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);color:var(--sub);font-weight:800;
+    }
+    .status-chip strong,.status-chip span{color:var(--text)}
+    .status-chip.ok{background:rgba(121,246,183,.10);border-color:rgba(121,246,183,.22)}
+    .status-chip.ng{background:rgba(255,156,174,.10);border-color:rgba(255,156,174,.22)}
+    .status-chip.wait{background:rgba(125,224,255,.10);border-color:rgba(125,224,255,.22)}
+    .controller-name{
+      margin-top:12px;padding:12px 14px;border-radius:16px;
+      background:rgba(8,14,28,.46);border:1px solid rgba(255,255,255,.08);
+      color:var(--sub);line-height:1.6;word-break:break-word;
+    }
+    .controller-name strong{color:var(--text)}
+    .controller-test{
+      margin-top:14px;padding:14px;border-radius:18px;background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .controller-test-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .controller-test-grid{margin-top:12px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+    .tester-chip{
+      padding:10px 8px;border-radius:16px;background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);text-align:center;transition:transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .tester-chip .ico{font-size:1.2rem;font-weight:900;line-height:1}
+    .tester-chip .lbl{margin-top:6px;font-size:.72rem;font-weight:800;color:var(--sub)}
+    .tester-chip.active{background:rgba(125,224,255,.18);border-color:rgba(125,224,255,.34);transform:translateY(-1px);box-shadow:0 10px 18px rgba(125,224,255,.10)}
+    .tester-chip.active .lbl{color:var(--text)}
+    .controller-test-note{margin-top:10px;color:var(--sub);font-size:.88rem;line-height:1.6}
+    .overlay-note{
+      margin-top:14px;padding:14px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);color:var(--sub);line-height:1.7;
+    }
+    button.primary{
+      appearance:none;border:none;border-radius:999px;padding:13px 18px;
+      font-weight:900;font-size:1rem;background:linear-gradient(180deg, #a6e9ff, #5eb9ff);
+      color:#052142;cursor:pointer;box-shadow:0 14px 30px rgba(72,180,255,.28)
+    }
+    button.primary:hover{filter:brightness(1.05)}
+    button.primary:disabled{cursor:not-allowed;filter:saturate(.62);opacity:.58;box-shadow:none}
+    .ghost-btn{
+      appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+      color:var(--text);padding:12px 14px;border-radius:999px;font-weight:800;cursor:pointer;
+    }
+    .sound-toggle{
+      appearance:none;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);
+      color:var(--text);padding:10px 14px;border-radius:999px;font-weight:900;cursor:pointer;
+      min-width:118px;box-shadow:0 10px 24px rgba(0,0,0,.14)
+    }
+    .sound-toggle:hover{filter:brightness(1.06)}
+    .sound-toggle:disabled{opacity:.55;cursor:default;filter:none}
+    .result-box{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
+    .result-card{
+      padding:16px;border-radius:18px;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .result-card .k{color:var(--sub);font-size:.9rem;font-weight:700}
+    .result-card .big{margin-top:8px;font-size:1.45rem;font-weight:900}
+    .rank-badge{
+      display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+      font-weight:900;color:var(--accent3);margin-top:16px;
+    }
+    .tiny{margin-top:12px;color:var(--sub);font-size:.92rem;line-height:1.7}
+    .sr-only{position:absolute!important;clip:rect(1px,1px,1px,1px);padding:0!important;border:0!important;height:1px!important;width:1px!important;overflow:hidden}
+    .stage.shake{animation:shake .28s ease}
+    @keyframes shake{
+      0%,100%{transform:translateX(0)}
+      20%{transform:translateX(-4px)}
+      40%{transform:translateX(4px)}
+      60%{transform:translateX(-3px)}
+      80%{transform:translateX(3px)}
+    }
+    @media (max-width:1020px){
+      body{padding:10px}
+      #app{height:calc(100dvh - 20px);padding:14px}
+      .main-grid{grid-template-columns:1fr}
+      .side-panel{grid-template-rows:auto auto auto auto auto}
+      .stage{min-height:390px}
+      .rider{width:min(36%,220px)}
+    }
+    @media (max-height:960px){
+      .side-panel{gap:12px}
+      .target-card{padding:14px}
+      .target-big{width:104px}
+      .metric,.style-card,.gesture-card,.legend{padding:12px}
+      .gesture-btn{min-height:78px;padding:10px 6px}
+      .gesture-btn .gicon{font-size:1.4rem}
+      .style-copy,.legend{font-size:.9rem}
+    }
+    @media (max-width:760px){
+      .topbar{align-items:flex-start;flex-direction:column}
+      .hud{width:100%;justify-content:flex-start}
+      .pill{min-width:0;flex:1}
+      .features,.result-box,.stats-grid,.status-grid{grid-template-columns:1fr}
+      .gesture-pad,.controller-test-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .stage{min-height:340px}
+      .stage-header{right:44px}
+      .target-big{width:98px}
+      .sequence-rail{grid-template-columns:repeat(auto-fit,minmax(84px,1fr))}
+      .footer-controls{align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <a class="home-btn" id="homeButton" href="./index.html">← ゲーム選択</a>
+
+  <main id="app">
+    <section class="panel topbar">
+      <div>
+        <div class="title">スカイリボン・ライズ</div>
+        <div class="sub">夜空のリボンボードで上昇する新シナリオです。<strong>右 / 左 / 前</strong>をランダムな順番で決め、制限時間内にトリック列をつなぐと、高度とエフェクトがどんどん伸びます。</div>
+      </div>
+      <div class="hud">
+        <div class="pill">残り <span id="sessionLabel">52.0s</span></div>
+        <div class="pill">列タイマー <span id="chainLabel">0.0s</span></div>
+        <div class="pill">高度 <span id="altitudeLabel">0m</span></div>
+        <div class="pill">スコア <span id="scoreLabel">0</span></div>
+        <div class="pill">コンボ <span id="comboLabel">0</span></div>
+        <div class="pill">スタイル <span id="styleLabel">0%</span></div>
+        <div class="pill">PAD <span id="padStatusLabel">未指定</span></div>
+        <button id="soundToggle" class="sound-toggle" type="button" aria-pressed="true">🔊 音 ON</button>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <section class="panel stage-panel">
+        <div class="status-strip">
+          <div id="phaseBadge" class="phase-badge warning">開始前にコントローラーを指定してください</div>
+          <div id="microcopy" class="microcopy">3〜8 手のランダム列を順番どおりに決めると、光の帯が派手になります。</div>
+        </div>
+
+        <div class="stage" id="stage">
+          <canvas id="fxCanvas" aria-hidden="true"></canvas>
+          <div class="horizon"></div>
+
+          <div class="stage-header">
+            <div class="stage-note" id="currentTarget">次の入力 : スタート待機</div>
+            <div class="stage-note" id="chainInfo">3〜8 手ランダム</div>
+          </div>
+
+          <div class="altimeter" aria-hidden="true">
+            <div id="altimeterFill" class="altimeter-fill"></div>
+            <div id="altimeterTip" class="altimeter-tip"></div>
+          </div>
+
+          <div id="feedback" class="feedback">READY</div>
+          <div id="burstLabel" class="burst-label">AURORA MODE</div>
+
+          <div id="rider" class="rider" data-pose="idle" aria-hidden="true">
+            <div class="glow"></div>
+            <div class="trail"></div>
+            <div class="body">
+              <div class="head"></div>
+              <div class="torso"></div>
+              <div class="arm left"></div>
+              <div class="arm right"></div>
+              <div class="leg left"></div>
+              <div class="leg right"></div>
+            </div>
+            <div class="board"></div>
+          </div>
+
+          <div class="progress-track" aria-hidden="true">
+            <div id="chainProgressFill" class="progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="sequence-wrap">
+          <div class="sequence-head">
+            <div class="section-title">現在のトリック列</div>
+            <div class="sequence-meta"><span id="roundLabel">ROUND 0</span> ・ <span id="lengthLabel">0手</span></div>
+          </div>
+          <div id="sequenceRail" class="sequence-rail" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <section class="target-card">
+          <div class="section-title">いま欲しいジェスチャー</div>
+          <div id="targetBig" class="target-big">⇡</div>
+          <div id="targetName" class="target-name">スタート待機</div>
+          <div id="targetHint" class="target-hint">開始前に入力方法を選んでください</div>
+        </section>
+
+        <section class="stats-grid">
+          <div class="metric">
+            <div class="k">成功列</div>
+            <div class="v" id="chainsLabel">0</div>
+          </div>
+          <div class="metric">
+            <div class="k">ベストコンボ</div>
+            <div class="v" id="bestComboLabel">0</div>
+          </div>
+          <div class="metric">
+            <div class="k">ミス</div>
+            <div class="v" id="missLabel">0</div>
+          </div>
+          <div class="metric">
+            <div class="k">最高高度</div>
+            <div class="v" id="peakLabel">0m</div>
+          </div>
+        </section>
+
+        <section class="style-card">
+          <div class="style-head">
+            <div class="section-title">スタイル熱量</div>
+            <strong id="styleCaption">ウォームアップ中</strong>
+          </div>
+          <div class="style-bar"><div id="styleFill" class="style-fill"></div></div>
+          <div id="styleCopy" class="style-copy">成功が続くほど、オーロラと粒子の演出が濃くなります。長い列ほど、クリア時の上昇量も大きくなります。</div>
+        </section>
+
+        <section class="gesture-card">
+          <div class="section-title">タップ操作</div>
+          <div id="gesturePad" class="gesture-pad"></div>
+        </section>
+
+        <section class="legend">
+          <strong>ルール</strong><br />
+          ・毎回 <strong>3〜8 手</strong> のランダム列が生成されます。<br />
+          ・順番どおり成功すると高度上昇、残り時間が多いほどボーナス増加。<br />
+          ・誤入力や時間切れでコンボが切れ、列タイマーも少し減ります。<br />
+          ・操作は <strong>十字キー / キーボード</strong> または <strong>ゲームパッド</strong> を開始前に選べます。
+        </section>
+      </aside>
+    </section>
+
+    <section class="panel footer-controls">
+      <div class="controls" id="controlsPrimaryText">
+        操作 : <strong>← / → / ↑</strong>（または A / D / W）<br />
+        キーボードもゲームパッドも <strong>右 / 左 / 前</strong> の 3 入力です。
+      </div>
+      <div class="controls" id="controlsSecondaryText">
+        右・左でライン調整、前で一気に加速。<br />
+        どちらの入力モードでも 3 入力だけで遊べます。
+      </div>
+    </section>
+    <section id="prep-screen">
+      <div class="prep-panel">
+        <h2 class="prep-title">SKY RIBBON RISE</h2>
+        <p class="prep-sub">カーレースゲームと同じ雰囲気の開始画面に合わせました。<br />操作方法を選んでから、ランダムなトリック列に挑戦します。</p>
+
+        <div class="prep-input-group">
+          <label class="prep-option">
+            <input type="radio" name="inputMode" value="keyboard" checked />
+            <span>⌨️ 十字キー / キーボード
+              <small>← / → / ↑ または A / D / W で操作します。</small>
+            </span>
+          </label>
+          <label class="prep-option">
+            <input type="radio" name="inputMode" value="gamepad" />
+            <span>🎮 ゲームコントローラー
+              <small>D-pad / 左スティック / A に対応</small>
+            </span>
+          </label>
+        </div>
+
+        <button id="prep-start-btn" type="button">START FLIGHT</button>
+
+        <div class="prep-status">
+          <strong>入力状態 :</strong> <span id="prepStatusText">十字キー / キーボードで開始できます</span><br />
+          <strong>コントローラー :</strong> <span id="prepPadText">未使用</span>
+        </div>
+
+        <div class="prep-note" id="prepNoteText">
+          ・キーボード時もゲームパッド時も <strong>右 / 左 / 前</strong> の 3 種です。<br />
+          ・開始画面でも <strong>十字キー / 左スティック</strong> で選択変更、<strong>↑ / A / Start</strong> で開始できます。
+        </div>
+      </div>
+    </section>
+
+    <section id="controllerOverlay" class="overlay hidden">
+      <div class="dialog">
+        <h2>コントローラー接続を待機中</h2>
+        <p id="controllerOverlayText">選択中のコントローラーが未接続です。再接続されるまでゲームを一時停止します。</p>
+        <div class="overlay-note">
+          <div><strong>選択中のコントローラー</strong></div>
+          <div id="controllerOverlayName">未指定</div>
+          <div id="controllerOverlayStatus" style="margin-top:8px">接続状態を確認しています。</div>
+        </div>
+        <div class="start-row">
+          <button id="recheckControllerButton" class="ghost-btn" type="button">接続状態を更新</button>
+          <button id="returnToIntroButton" class="ghost-btn" type="button">開始画面に戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="resultOverlay" class="overlay hidden">
+      <div class="dialog">
+        <h2>フライト結果</h2>
+        <p id="resultSummary">夜空をきれいに駆け上がりました。</p>
+        <div id="rankBadge" class="rank-badge">RANK B</div>
+        <div class="result-box">
+          <div class="result-card">
+            <div class="k">スコア</div>
+            <div id="resultScore" class="big">0</div>
+          </div>
+          <div class="result-card">
+            <div class="k">最高高度</div>
+            <div id="resultAltitude" class="big">0m</div>
+          </div>
+          <div class="result-card">
+            <div class="k">成功列</div>
+            <div id="resultChains" class="big">0</div>
+          </div>
+          <div class="result-card">
+            <div class="k">ベストコンボ</div>
+            <div id="resultCombo" class="big">0</div>
+          </div>
+        </div>
+        <div class="start-row">
+          <button id="retryButton" class="primary" type="button">もう一度飛ぶ</button>
+          <button id="resultHomeButton" class="ghost-btn" type="button">ゲーム選択へ</button>
+          <div class="tiny">長い列を速く成功させるほど、より高いランクになります。</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const APP_CONFIG = {
+      title: 'スカイリボン・ライズ',
+      sessionMs: 52000,
+      confirmKeys: ['Enter', ' ', 'ArrowUp'],
+      backKeys: ['Escape']
+    };
+
+    const GESTURES = [
+      { id:'left', label:'左', icon:'←', short:'LEFT', hint:'ArrowLeft / A / 左ボタン', color:'#7de0ff', keys:['ArrowLeft','a','A'] },
+      { id:'right', label:'右', icon:'→', short:'RIGHT', hint:'ArrowRight / D / 右ボタン', color:'#8bf7c2', keys:['ArrowRight','d','D'] },
+      { id:'forward', label:'前', icon:'⇡', short:'FORWARD', hint:'ArrowUp / W / Space / Enter / A', color:'#ffb3df', keys:['ArrowUp','w','W',' ','Enter'] }
+    ];
+
+    const INPUT_MODE_CONFIG = {
+      keyboard: {
+        gestureIds:['left','right','forward'],
+        primaryControlsHtml:'操作 : <strong>← / → / ↑</strong>（または A / D / W）<br />キーボードは <strong>右 / 左 / 前</strong> の 3 入力です。',
+        secondaryControlsHtml:'右・左でライン調整、前で一気に加速。<br />キーボードは 3 入力だけで遊べます。',
+        prepNoteHtml:'・キーボード時は <strong>右 / 左 / 前</strong> の 3 種です。<br />・開始画面でも <strong>十字キー</strong> で選択変更、<strong>↑ / Enter</strong> で開始できます。'
+      },
+      gamepad: {
+        gestureIds:['left','right','forward'],
+        primaryControlsHtml:'操作 : <strong>← / → / ↑</strong>（または 左スティック / D-pad / A）<br />ゲームパッドも <strong>右 / 左 / 前</strong> の 3 入力です。',
+        secondaryControlsHtml:'右・左でライン調整、前で一気に加速。<br />ゲームパッドも 3 入力だけで遊べます。',
+        prepNoteHtml:'・ゲームパッド時も <strong>右 / 左 / 前</strong> の 3 種です。<br />・開始画面でも <strong>十字キー / 左スティック</strong> で選択変更、<strong>↑ / A / Start</strong> で開始できます。'
+      }
+    };
+
+    const LAUNCHER_REGISTRY_KEY = 'feeling-game-launcher:games:v1';
+    const CONTROLLER_STORAGE_KEY = 'sky-ribbon-rise:selected-controller:v1';
+
+    const state = {
+      mode: 'intro',
+      sessionRemaining: APP_CONFIG.sessionMs,
+      chainRemaining: 0,
+      chainTotal: 0,
+      round: 0,
+      sequence: [],
+      index: 0,
+      score: 0,
+      altitude: 0,
+      altitudeDisplay: 0,
+      combo: 0,
+      bestCombo: 0,
+      chains: 0,
+      misses: 0,
+      peakAltitude: 0,
+      style: 0,
+      feedbackTimer: 0,
+      feedbackText: '',
+      interludeTimer: 0,
+      interludeReason: '',
+      burstLabel: 'AURORA MODE',
+      riderX: 0,
+      riderRise: 0,
+      riderTilt: 0,
+      riderSpin: 0,
+      riderPose: 'idle',
+      riderFlash: 0,
+      driftPhase: 0,
+      cueFlash: 0,
+      didPulseTarget: false,
+      pointerHighlightTimer: 0,
+      controllerResumeMode: ''
+    };
+
+    const controllerState = {
+      selectedIndex: null,
+      connected: false,
+      active: false,
+      lastActiveAt: 0,
+      lastPadId: '',
+      inputMode: 'keyboard',
+      prepSelectionIndex: 0,
+      prepNavCooldown: 0,
+      prepStartLatch: false
+    };
+
+    const bgmState = {
+      enabled: true,
+      ctx: null,
+      master: null,
+      nodes: [],
+      pulseTimer: null,
+      stopTimer: null,
+      started: false,
+      failed: false,
+      errorMessage: ''
+    };
+
+    const inputState = {
+      gamepad: { left:false, right:false, forward:false, start:false }
+    };
+
+    const refs = {
+      stage: document.getElementById('stage'),
+      rider: document.getElementById('rider'),
+      sequenceRail: document.getElementById('sequenceRail'),
+      phaseBadge: document.getElementById('phaseBadge'),
+      microcopy: document.getElementById('microcopy'),
+      currentTarget: document.getElementById('currentTarget'),
+      chainInfo: document.getElementById('chainInfo'),
+      roundLabel: document.getElementById('roundLabel'),
+      lengthLabel: document.getElementById('lengthLabel'),
+      targetBig: document.getElementById('targetBig'),
+      targetName: document.getElementById('targetName'),
+      targetHint: document.getElementById('targetHint'),
+      sessionLabel: document.getElementById('sessionLabel'),
+      chainLabel: document.getElementById('chainLabel'),
+      altitudeLabel: document.getElementById('altitudeLabel'),
+      scoreLabel: document.getElementById('scoreLabel'),
+      comboLabel: document.getElementById('comboLabel'),
+      styleLabel: document.getElementById('styleLabel'),
+      padStatusLabel: document.getElementById('padStatusLabel'),
+      soundToggle: document.getElementById('soundToggle'),
+      chainsLabel: document.getElementById('chainsLabel'),
+      bestComboLabel: document.getElementById('bestComboLabel'),
+      missLabel: document.getElementById('missLabel'),
+      peakLabel: document.getElementById('peakLabel'),
+      styleFill: document.getElementById('styleFill'),
+      styleCaption: document.getElementById('styleCaption'),
+      styleCopy: document.getElementById('styleCopy'),
+      feedback: document.getElementById('feedback'),
+      chainProgressFill: document.getElementById('chainProgressFill'),
+      altimeterFill: document.getElementById('altimeterFill'),
+      altimeterTip: document.getElementById('altimeterTip'),
+      burstLabel: document.getElementById('burstLabel'),
+      prepScreen: document.getElementById('prep-screen'),
+      prepStartButton: document.getElementById('prep-start-btn'),
+      prepStatusText: document.getElementById('prepStatusText'),
+      prepPadText: document.getElementById('prepPadText'),
+      controllerOverlay: document.getElementById('controllerOverlay'),
+      resultOverlay: document.getElementById('resultOverlay'),
+      controllerOverlayText: document.getElementById('controllerOverlayText'),
+      controllerOverlayName: document.getElementById('controllerOverlayName'),
+      controllerOverlayStatus: document.getElementById('controllerOverlayStatus'),
+      recheckControllerButton: document.getElementById('recheckControllerButton'),
+      returnToIntroButton: document.getElementById('returnToIntroButton'),
+      howToButton: document.getElementById('howToButton'),
+      retryButton: document.getElementById('retryButton'),
+      resultHomeButton: document.getElementById('resultHomeButton'),
+      resultSummary: document.getElementById('resultSummary'),
+      rankBadge: document.getElementById('rankBadge'),
+      resultScore: document.getElementById('resultScore'),
+      resultAltitude: document.getElementById('resultAltitude'),
+      resultChains: document.getElementById('resultChains'),
+      resultCombo: document.getElementById('resultCombo'),
+      gesturePad: document.getElementById('gesturePad'),
+      controlsPrimaryText: document.getElementById('controlsPrimaryText'),
+      controlsSecondaryText: document.getElementById('controlsSecondaryText'),
+      prepNoteText: document.getElementById('prepNoteText'),
+      canvas: document.getElementById('fxCanvas')
+    };
+
+    const ctx = refs.canvas.getContext('2d', { alpha:true });
+
+    function updateSoundToggle() {
+      if (!refs.soundToggle) return;
+      const supported = !!(window.AudioContext || window.webkitAudioContext);
+      if (!supported) {
+        refs.soundToggle.textContent = '🔇 音なし';
+        refs.soundToggle.disabled = true;
+        refs.soundToggle.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      if (bgmState.failed) {
+        refs.soundToggle.textContent = '🔇 音エラー';
+        refs.soundToggle.disabled = true;
+        refs.soundToggle.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      refs.soundToggle.disabled = false;
+      refs.soundToggle.textContent = bgmState.enabled ? '🔊 音 ON' : '🔈 音 OFF';
+      refs.soundToggle.setAttribute('aria-pressed', bgmState.enabled ? 'true' : 'false');
+    }
+
+    function failBgm(error) {
+      bgmState.failed = true;
+      bgmState.enabled = false;
+      bgmState.errorMessage = error?.message || String(error || 'audio error');
+      stopAmbientLoop();
+      updateSoundToggle();
+      return false;
+    }
+
+    function ensureBgmElement() {
+      return null;
+    }
+
+    function ensureAudioContext() {
+      try {
+        const AudioCtor = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtor || bgmState.failed) return null;
+        if (!bgmState.ctx) {
+          bgmState.ctx = new AudioCtor();
+          bgmState.master = bgmState.ctx.createGain();
+          bgmState.master.gain.value = 0.0001;
+          bgmState.master.connect(bgmState.ctx.destination);
+        }
+        if (bgmState.ctx.state === 'suspended') {
+          bgmState.ctx.resume().catch(() => {});
+        }
+        return bgmState.ctx;
+      } catch (error) {
+        failBgm(error);
+        return null;
+      }
+    }
+
+    function stopAmbientLoop() {
+      if (bgmState.pulseTimer) {
+        clearInterval(bgmState.pulseTimer);
+        bgmState.pulseTimer = null;
+      }
+      bgmState.nodes.forEach((node) => {
+        try { if (typeof node.stop === 'function') node.stop(); } catch {}
+        try { if (typeof node.disconnect === 'function') node.disconnect(); } catch {}
+      });
+      bgmState.nodes = [];
+      bgmState.started = false;
+    }
+
+    function startAmbientLoop() {
+      try {
+        const ctx = ensureAudioContext();
+        if (!ctx || !bgmState.master || bgmState.failed) return false;
+        if (bgmState.stopTimer) {
+          clearTimeout(bgmState.stopTimer);
+          bgmState.stopTimer = null;
+        }
+        if (!bgmState.started) {
+          stopAmbientLoop();
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1040, ctx.currentTime);
+          filter.Q.setValueAtTime(0.9, ctx.currentTime);
+
+          const padGain = ctx.createGain();
+          padGain.gain.setValueAtTime(0.22, ctx.currentTime);
+          const shimmerGain = ctx.createGain();
+          shimmerGain.gain.setValueAtTime(0.07, ctx.currentTime);
+
+          const oscA = ctx.createOscillator();
+          oscA.type = 'triangle';
+          const oscB = ctx.createOscillator();
+          oscB.type = 'sine';
+          const oscC = ctx.createOscillator();
+          oscC.type = 'sine';
+
+          oscA.connect(padGain);
+          oscB.connect(padGain);
+          oscC.connect(shimmerGain);
+          padGain.connect(filter);
+          shimmerGain.connect(filter);
+          filter.connect(bgmState.master);
+
+          const chords = [
+            [196.00, 293.66, 392.00],
+            [220.00, 329.63, 440.00],
+            [174.61, 261.63, 392.00],
+            [246.94, 369.99, 493.88]
+          ];
+          let chordIndex = 0;
+          const shimmerLevels = [0.07, 0.1, 0.08, 0.11];
+          const filterTargets = [1040, 980, 920, 1080];
+          const applyChord = (index, glide = 0.85) => {
+            const [a, b, c] = chords[index % chords.length];
+            oscA.frequency.setTargetAtTime(a, ctx.currentTime, glide);
+            oscB.frequency.setTargetAtTime(b, ctx.currentTime, glide);
+            oscC.frequency.setTargetAtTime(c, ctx.currentTime, glide);
+            shimmerGain.gain.setTargetAtTime(shimmerLevels[index % shimmerLevels.length], ctx.currentTime, 0.9);
+            filter.frequency.setTargetAtTime(filterTargets[index % filterTargets.length], ctx.currentTime, 1.0);
+          };
+          applyChord(0, 0.01);
+          bgmState.pulseTimer = setInterval(() => {
+            try {
+              chordIndex = (chordIndex + 1) % chords.length;
+              applyChord(chordIndex, 1.05);
+            } catch (error) {
+              failBgm(error);
+            }
+          }, 3200);
+
+          oscA.start();
+          oscB.start();
+          oscC.start();
+          bgmState.nodes = [oscA, oscB, oscC, filter, padGain, shimmerGain];
+          bgmState.started = true;
+        }
+        bgmState.master.gain.cancelScheduledValues(ctx.currentTime);
+        bgmState.master.gain.setTargetAtTime(0.045, ctx.currentTime, 0.18);
+        return true;
+      } catch (error) {
+        return failBgm(error);
+      }
+    }
+
+    async function playBgm() {
+      if (!bgmState.enabled || bgmState.failed) {
+        updateSoundToggle();
+        return;
+      }
+      const started = startAmbientLoop();
+      if (!started) failBgm(new Error('BGM start failed'));
+      updateSoundToggle();
+    }
+
+    function pauseBgm() {
+      const ctx = bgmState.ctx;
+      if (bgmState.stopTimer) {
+        clearTimeout(bgmState.stopTimer);
+        bgmState.stopTimer = null;
+      }
+      if (ctx && bgmState.master) {
+        bgmState.master.gain.cancelScheduledValues(ctx.currentTime);
+        bgmState.master.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
+        bgmState.stopTimer = setTimeout(() => {
+          stopAmbientLoop();
+          bgmState.stopTimer = null;
+          updateSoundToggle();
+        }, 220);
+      } else {
+        stopAmbientLoop();
+      }
+      updateSoundToggle();
+    }
+
+    function toggleBgm() {
+      if (bgmState.failed) {
+        updateSoundToggle();
+        return;
+      }
+      bgmState.enabled = !bgmState.enabled;
+      if (bgmState.enabled) playBgm();
+      else pauseBgm();
+      updateSoundToggle();
+    }
+
+    const fx = {
+      stars: [],
+      particles: [],
+      rings: [],
+      ribbons: [],
+      comets: []
+    };
+
+    function rand(min = 0, max = 1) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function randInt(min, max) {
+      return Math.floor(rand(min, max + 1));
+    }
+
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function choice(list) {
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getInputModeConfig(mode = controllerState.inputMode) {
+      return INPUT_MODE_CONFIG[mode === 'gamepad' ? 'gamepad' : 'keyboard'];
+    }
+
+    function getGesturesForMode(mode = controllerState.inputMode) {
+      const allowed = new Set(getInputModeConfig(mode).gestureIds);
+      return GESTURES.filter((gesture) => allowed.has(gesture.id));
+    }
+
+    function getKeyboardGestures() {
+      return getGesturesForMode('keyboard');
+    }
+
+    function updateInputModeCopy() {
+      const config = getInputModeConfig();
+      if (refs.controlsPrimaryText) refs.controlsPrimaryText.innerHTML = config.primaryControlsHtml;
+      if (refs.controlsSecondaryText) refs.controlsSecondaryText.innerHTML = config.secondaryControlsHtml;
+      if (refs.prepNoteText) refs.prepNoteText.innerHTML = config.prepNoteHtml;
+    }
+
+    function resetGamepadInputState() {
+      inputState.gamepad.left = false;
+      inputState.gamepad.right = false;
+      inputState.gamepad.forward = false;
+      inputState.gamepad.start = false;
+    }
+
+    function padButtonActive(pad, index, threshold = 0.45) {
+      const button = pad?.buttons?.[index];
+      return !!(button?.pressed || (button?.value || 0) > threshold);
+    }
+
+    function axisValue(value, threshold = 0.2) {
+      const n = Number(value || 0);
+      return Math.abs(n) >= threshold ? n : 0;
+    }
+
+    function getPadGestureState(pad) {
+      if (!pad) {
+        return { left:false, right:false, forward:false, start:false, lx:0, ly:0 };
+      }
+      const lx = axisValue(pad.axes?.[0], 0.2);
+      const ly = axisValue(pad.axes?.[1], 0.2);
+      const left = padButtonActive(pad, 14) || lx < -0.58;
+      const right = padButtonActive(pad, 15) || lx > 0.58;
+      const forward = padButtonActive(pad, 12) || padButtonActive(pad, 0) || ly < -0.62;
+      const start = padButtonActive(pad, 9) || padButtonActive(pad, 16);
+      return { left, right, forward, start, lx, ly };
+    }
+
+    function updateControllerTester(next = null) {
+      return next;
+    }
+
+    function getGamepadsSnapshot() {
+      try {
+        return navigator.getGamepads ? Array.from(navigator.getGamepads() || []) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function getSelectedGamepad(snapshot = getGamepadsSnapshot()) {
+      if (!Number.isInteger(controllerState.selectedIndex) || controllerState.selectedIndex < 0) return null;
+      return snapshot[controllerState.selectedIndex] || null;
+    }
+
+    function trimPadId(id) {
+      const label = (id || 'Unknown Gamepad').trim();
+      return label.length > 58 ? `${label.slice(0, 55)}…` : label;
+    }
+
+    function describePadIndex(index) {
+      return Number.isInteger(index) && index >= 0 ? `P${index + 1}` : '未指定';
+    }
+
+    function padLabel(pad) {
+      return `${describePadIndex(pad?.index)} ・ ${trimPadId(pad?.id)}`;
+    }
+
+    function hasPadActivity(pad) {
+      if (!pad) return false;
+      const buttonPressed = (pad.buttons || []).some((button) => !!button?.pressed || (button?.value || 0) > 0.35);
+      const axisMoved = (pad.axes || []).some((axis) => Math.abs(axis || 0) > 0.45);
+      return buttonPressed || axisMoved;
+    }
+
+    function loadSelectedController() {
+      try {
+        const raw = localStorage.getItem(CONTROLLER_STORAGE_KEY);
+        if (raw === null || raw === '') return;
+        const parsed = Number(raw);
+        if (Number.isInteger(parsed) && parsed >= 0) controllerState.selectedIndex = parsed;
+      } catch {}
+    }
+
+    function saveSelectedController() {
+      try {
+        if (Number.isInteger(controllerState.selectedIndex) && controllerState.selectedIndex >= 0) {
+          localStorage.setItem(CONTROLLER_STORAGE_KEY, String(controllerState.selectedIndex));
+        } else {
+          localStorage.removeItem(CONTROLLER_STORAGE_KEY);
+        }
+      } catch {}
+    }
+
+    function populateControllerSelect(snapshot = getGamepadsSnapshot()) {
+      return snapshot;
+    }
+
+    function syncPrepModeInputs() {
+      const radios = [...document.querySelectorAll('input[name="inputMode"]')];
+      radios.forEach((radio, index) => {
+        radio.checked = radio.value === controllerState.inputMode;
+        const option = radio.closest('.prep-option');
+        if (option) option.style.borderColor = index === controllerState.prepSelectionIndex ? 'rgba(125,224,255,.36)' : 'rgba(255,255,255,.08)';
+      });
+    }
+    function canStartWithController(snapshot = getGamepadsSnapshot()) {
+      if (controllerState.inputMode === 'keyboard') return true;
+      return !!getSelectedGamepad(snapshot);
+    }
+
+    function updateControllerUI(snapshot = getGamepadsSnapshot()) {
+      const firstPad = snapshot.find(Boolean) || null;
+      const selectedPad = controllerState.inputMode === 'gamepad'
+        ? (getSelectedGamepad(snapshot) || firstPad)
+        : firstPad;
+      const padGestureState = getPadGestureState(selectedPad);
+      const now = performance.now();
+      const activeNow = hasPadActivity(selectedPad);
+      if (activeNow) controllerState.lastActiveAt = now;
+      controllerState.connected = !!selectedPad;
+      controllerState.active = !!selectedPad && (activeNow || (now - controllerState.lastActiveAt) < 850);
+      if (selectedPad?.id) {
+        controllerState.lastPadId = selectedPad.id;
+        controllerState.selectedIndex = selectedPad.index;
+      }
+
+      const keyboardMode = controllerState.inputMode === 'keyboard';
+      const startReady = keyboardMode ? true : !!selectedPad;
+      refs.padStatusLabel.textContent = keyboardMode
+        ? '十字キー'
+        : selectedPad
+          ? `${describePadIndex(selectedPad.index)} 接続`
+          : 'PAD待機';
+
+      refs.prepStatusText.textContent = keyboardMode
+        ? '十字キー / キーボードで開始できます'
+        : selectedPad
+          ? 'ゲームパッドで開始できます'
+          : 'ゲームパッド接続待ちです';
+      refs.prepPadText.textContent = selectedPad
+        ? padLabel(selectedPad)
+        : '未接続';
+      refs.prepStartButton.disabled = !startReady;
+      if (refs.retryButton) refs.retryButton.disabled = !startReady && controllerState.inputMode === 'gamepad';
+
+      refs.controllerOverlayName.textContent = selectedPad
+        ? padLabel(selectedPad)
+        : controllerState.lastPadId
+          ? trimPadId(controllerState.lastPadId)
+          : '未指定';
+      refs.controllerOverlayStatus.textContent = selectedPad
+        ? '接続を確認しました。再接続後は自動でプレイへ戻ります。'
+        : 'まだ接続されていません。ケーブル・Bluetooth・電源を確認してください。';
+
+      if (state.mode === 'intro') {
+        refs.targetHint.textContent = keyboardMode
+          ? '十字キー / Enter ですぐ開始できます'
+          : selectedPad
+            ? 'ゲームパッドの A / ↑ / Start で開始できます'
+            : 'ゲームパッドを接続してください';
+      }
+      syncPrepModeInputs();
+      updateControllerTester(selectedPad ? padGestureState : null);
+    }
+
+    function refreshControllerSetup() {
+      const snapshot = getGamepadsSnapshot();
+      populateControllerSelect(snapshot);
+      updateControllerUI(snapshot);
+      return snapshot;
+    }
+
+    function setSelectedControllerIndex(value) {
+      const parsed = value === '' ? null : Number(value);
+      controllerState.selectedIndex = Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+      saveSelectedController();
+      resetGamepadInputState();
+      refreshControllerSetup();
+    }
+
+    function setInputMode(mode) {
+      controllerState.inputMode = mode === 'gamepad' ? 'gamepad' : 'keyboard';
+      controllerState.prepSelectionIndex = controllerState.inputMode === 'keyboard' ? 0 : 1;
+      updateInputModeCopy();
+      buildGestureButtons();
+      refreshControllerSetup();
+    }
+
+    function cyclePrepMode(direction) {
+      controllerState.prepSelectionIndex = (controllerState.prepSelectionIndex + direction + 2) % 2;
+      setInputMode(controllerState.prepSelectionIndex === 0 ? 'keyboard' : 'gamepad');
+      showFeedback(controllerState.inputMode === 'keyboard' ? 'KEYBOARD' : 'GAMEPAD', 'good');
+    }
+
+    function notifyControllerRequired() {
+      refs.prepScreen.classList.remove('hidden');
+      updatePhaseBadge('開始前に入力方法を選んでください', 'warning');
+      refs.microcopy.textContent = '十字キー / キーボード または ゲームパッド を選んでから開始します。';
+      showFeedback('SELECT INPUT', 'miss');
+      refreshControllerSetup();
+    }
+
+    function pauseForControllerDisconnect() {
+      if (state.mode !== 'playing' && state.mode !== 'interlude') return;
+      state.controllerResumeMode = state.mode;
+      state.mode = 'controller-paused';
+      refs.controllerOverlayText.textContent = '選択中のコントローラーが未接続です。再接続されるまでゲームを一時停止します。';
+      refs.controllerOverlay.classList.remove('hidden');
+      updatePhaseBadge('CONTROLLER WAIT', 'warning');
+      refs.microcopy.textContent = '接続が戻るまでタイマーを停止しています。';
+      showFeedback('PAD LOST', 'miss');
+    }
+
+    function resumeAfterControllerReconnect() {
+      if (state.mode !== 'controller-paused') return;
+      state.mode = state.controllerResumeMode || 'playing';
+      state.controllerResumeMode = '';
+      refs.controllerOverlay.classList.add('hidden');
+      updatePhaseBadge('CONTROLLER OK', 'success');
+      refs.microcopy.textContent = '接続を確認しました。プレイを再開します。';
+      showFeedback('PAD OK', 'good');
+      updateCurrentTarget();
+    }
+
+    function returnToIntroSetup() {
+      state.mode = 'intro';
+      pauseBgm();
+      state.controllerResumeMode = '';
+      resetGamepadInputState();
+      refs.controllerOverlay.classList.add('hidden');
+      refs.resultOverlay.classList.add('hidden');
+      refs.prepScreen.classList.remove('hidden');
+      refs.roundLabel.textContent = 'ROUND 0';
+      refs.lengthLabel.textContent = '0手';
+      refs.chainInfo.textContent = '3〜8 手ランダム';
+      refs.sequenceRail.innerHTML = '';
+      refs.currentTarget.textContent = '次の入力 : フライト開始';
+      refs.targetBig.textContent = '⇡';
+      refs.targetName.textContent = 'スタート待機';
+      refs.targetHint.textContent = '開始前に入力方法を選んでください';
+      updatePhaseBadge('開始前に入力方法を選んでください', 'warning');
+      refs.microcopy.textContent = '十字キー / キーボード または ゲームパッド を選んでから開始します。';
+      refreshControllerSetup();
+      updateHud();
+    }
+
+    function resolveLauncherPath() {
+      const path = (location.pathname || '').replace(/\\/g, '/').toLowerCase();
+      return /\/games\/[^/]+\.html?$/.test(path) ? './index.html' : './games/index.html';
+    }
+
+    function syncHomeButtonHref() {
+      const homeButton = document.getElementById('homeButton');
+      if (homeButton) homeButton.href = resolveLauncherPath();
+    }
+
+
+    function navigateLocal(target) {
+      try {
+        const resolved = new URL(target, location.href).href;
+        if (resolved === location.href) return;
+        window.location.assign(resolved);
+      } catch {
+        if (target !== location.href) location.href = target;
+      }
+    }
+
+    function getGameMetaRecord() {
+      const file = (location.pathname.split('/').pop() || '').trim();
+      if (!/\.html?$/i.test(file) || file === 'index.html' || file === 'game-template.html') return null;
+      const meta = (name) => document.querySelector(`meta[name="${name}"]`)?.content?.trim() || '';
+      return {
+        file,
+        title: meta('game:title') || APP_CONFIG.title,
+        tag: meta('game:tag') || 'Game',
+        cover: meta('game:cover') || 'generic',
+        coverColor: meta('game:cover-color') || '',
+        emoji: meta('game:emoji') || '🎮',
+        order: Number(meta('game:order') || 999),
+        updatedAt: Date.now()
+      };
+    }
+
+    function registerGameInLauncher() {
+      const record = getGameMetaRecord();
+      if (!record) return;
+      try {
+        const raw = localStorage.getItem(LAUNCHER_REGISTRY_KEY);
+        const parsed = JSON.parse(raw || '[]');
+        const list = Array.isArray(parsed) ? parsed : [];
+        const merged = [...list.filter((item) => item?.file !== record.file), record].slice(-120);
+        localStorage.setItem(LAUNCHER_REGISTRY_KEY, JSON.stringify(merged));
+      } catch {}
+    }
+
+    function goHome() {
+      pauseBgm();
+      navigateLocal(resolveLauncherPath());
+    }
+
+    function getGesture(id) {
+      return GESTURES.find((item) => item.id === id);
+    }
+
+    function formatSeconds(ms) {
+      return `${Math.max(0, ms) / 1000}`;
+    }
+
+    function styleCaptionFromValue(v) {
+      if (v >= 0.88) return 'オーロラ全開';
+      if (v >= 0.65) return 'ネオン急上昇';
+      if (v >= 0.42) return 'いい流れ';
+      if (v >= 0.18) return 'あたたまってきた';
+      return 'ウォームアップ中';
+    }
+
+    function styleCopyFromValue(v) {
+      if (v >= 0.88) return 'かなり派手です。成功列クリア時の粒子数と光の帯が最大級になります。';
+      if (v >= 0.65) return '空がきれいに光りはじめています。長い列を決めると大きく伸びます。';
+      if (v >= 0.42) return 'まだまだ伸ばせます。ミスを減らして列タイマーを残すのがコツです。';
+      return '成功が続くほど、オーロラと粒子の演出が濃くなります。長い列ほど、クリア時の上昇量も大きくなります。';
+    }
+
+    function updateStylePanel() {
+      const pct = Math.round(state.style * 100);
+      refs.styleFill.style.width = `${pct}%`;
+      refs.styleLabel.textContent = `${pct}%`;
+      refs.styleCaption.textContent = styleCaptionFromValue(state.style);
+      refs.styleCopy.textContent = styleCopyFromValue(state.style);
+      if (state.style >= 0.9) state.burstLabel = 'COSMIC BURST';
+      else if (state.style >= 0.6) state.burstLabel = 'AURORA MODE';
+      else if (state.style >= 0.3) state.burstLabel = 'RIBBON FLOW';
+      else state.burstLabel = 'WARM UP';
+      refs.burstLabel.textContent = state.burstLabel;
+    }
+
+    function updateHud() {
+      refs.sessionLabel.textContent = `${(Math.max(0, state.sessionRemaining) / 1000).toFixed(1)}s`;
+      refs.chainLabel.textContent = state.chainTotal ? `${(Math.max(0, state.chainRemaining) / 1000).toFixed(1)}s` : '0.0s';
+      refs.altitudeLabel.textContent = `${Math.round(state.altitudeDisplay)}m`;
+      refs.scoreLabel.textContent = `${Math.round(state.score)}`;
+      refs.comboLabel.textContent = `${state.combo}`;
+      refs.chainsLabel.textContent = `${state.chains}`;
+      refs.bestComboLabel.textContent = `${state.bestCombo}`;
+      refs.missLabel.textContent = `${state.misses}`;
+      refs.peakLabel.textContent = `${Math.round(state.peakAltitude)}m`;
+      updateStylePanel();
+
+      const chainPct = state.chainTotal ? clamp(state.chainRemaining / state.chainTotal, 0, 1) : 0;
+      refs.chainProgressFill.style.width = `${chainPct * 100}%`;
+
+      const altPct = clamp(state.altitudeDisplay / 520, 0, 1);
+      refs.altimeterFill.style.height = `${altPct * 100}%`;
+      refs.altimeterTip.style.bottom = `${clamp(Math.max(6, altPct * 100), 6, 95)}%`;
+    }
+
+    function showFeedback(text, tone = 'good') {
+      refs.feedback.textContent = text;
+      refs.feedback.className = `feedback show ${tone === 'miss' ? 'miss' : 'good'}`;
+      state.feedbackText = text;
+      state.feedbackTimer = 1.0;
+    }
+
+    function pulseTarget() {
+      refs.targetBig.classList.add('pulse');
+      state.didPulseTarget = true;
+      setTimeout(() => refs.targetBig.classList.remove('pulse'), 140);
+    }
+
+    function updatePhaseBadge(text, tone = '') {
+      refs.phaseBadge.textContent = text;
+      refs.phaseBadge.className = `phase-badge${tone ? ` ${tone}` : ''}`;
+    }
+
+    function makeSequence(length) {
+      const sourceGestures = getGesturesForMode();
+      const result = [];
+      for (let i = 0; i < length; i += 1) {
+        let pool = [...sourceGestures];
+        if (i >= 1 && Math.random() < 0.58) {
+          pool = pool.filter((item) => item.id !== result[i - 1]?.id);
+        }
+        if (i >= 2 && result[i - 1]?.id === result[i - 2]?.id) {
+          pool = pool.filter((item) => item.id !== result[i - 1]?.id);
+        }
+        result.push(choice(pool.length ? pool : sourceGestures));
+      }
+      return result;
+    }
+
+    function renderSequence() {
+      refs.sequenceRail.innerHTML = state.sequence.map((step, index) => {
+        const cls = [
+          'seq-card',
+          index < state.index ? 'done' : '',
+          index === state.index && state.mode === 'playing' ? 'active' : ''
+        ].filter(Boolean).join(' ');
+        return `
+          <div class="${cls}" data-step-index="${index}">
+            <div class="seq-icon" aria-hidden="true">${step.icon}</div>
+            <div>
+              <div class="seq-label">${step.label}</div>
+              <div class="seq-sub">${step.short}</div>
+            </div>
+            <div class="seq-no">${index + 1}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function markSequenceError() {
+      const current = refs.sequenceRail.querySelector(`.seq-card[data-step-index="${state.index}"]`);
+      if (!current) return;
+      current.classList.add('error');
+      setTimeout(() => current.classList.remove('error'), 240);
+    }
+
+    function updateCurrentTarget() {
+      if (state.mode === 'intro') {
+        refs.currentTarget.textContent = '次の入力 : フライト開始';
+        refs.targetBig.textContent = '⇡';
+        refs.targetName.textContent = 'スタート待機';
+        refs.targetHint.textContent = '開始前に入力方法を選んでください';
+        return;
+      }
+      const target = state.sequence[state.index];
+      if (!target) {
+        refs.currentTarget.textContent = '次の入力 : 列クリア';
+        refs.targetBig.textContent = '★';
+        refs.targetName.textContent = 'クリア！';
+        refs.targetHint.textContent = '次の列を生成中です';
+        return;
+      }
+      refs.currentTarget.textContent = `次の入力 : ${target.label}`;
+      refs.targetBig.textContent = target.icon;
+      refs.targetName.textContent = target.label;
+      refs.targetHint.textContent = target.hint;
+      pulseTarget();
+    }
+
+    function setupNextSequence() {
+      const length = randInt(3, 8);
+      state.sequence = makeSequence(length);
+      state.index = 0;
+      state.round += 1;
+      const difficultyCut = Math.min(900, Math.max(0, state.chains - 2) * 90);
+      state.chainTotal = clamp(2800 + length * 830 - difficultyCut, 3600, 9200);
+      state.chainRemaining = state.chainTotal;
+      refs.roundLabel.textContent = `ROUND ${state.round}`;
+      refs.lengthLabel.textContent = `${length}手`;
+      refs.chainInfo.textContent = `${length} 手ランダム`;
+      refs.microcopy.textContent = `残り ${length} 手を順番どおりに。長い列ほど上昇量が大きいです。`;
+      updatePhaseBadge(`列 ${state.round} : ${length} 手スタート`);
+      renderSequence();
+      updateCurrentTarget();
+    }
+
+    function resetState() {
+      state.mode = 'playing';
+      state.sessionRemaining = APP_CONFIG.sessionMs;
+      state.chainRemaining = 0;
+      state.chainTotal = 0;
+      state.round = 0;
+      state.sequence = [];
+      state.index = 0;
+      state.score = 0;
+      state.altitude = 0;
+      state.altitudeDisplay = 0;
+      state.combo = 0;
+      state.bestCombo = 0;
+      state.chains = 0;
+      state.misses = 0;
+      state.peakAltitude = 0;
+      state.style = 0.12;
+      state.feedbackTimer = 0;
+      state.feedbackText = '';
+      state.interludeTimer = 0;
+      state.interludeReason = '';
+      state.riderX = 0;
+      state.riderRise = 0;
+      state.riderTilt = 0;
+      state.riderSpin = 0;
+      state.riderPose = 'idle';
+      state.riderFlash = 0;
+      state.driftPhase = 0;
+      state.cueFlash = 0;
+      state.pointerHighlightTimer = 0;
+      refs.prepScreen.classList.add('hidden');
+      refs.controllerOverlay.classList.add('hidden');
+      refs.resultOverlay.classList.add('hidden');
+      refs.feedback.className = 'feedback';
+      refs.rider.dataset.pose = 'idle';
+      refs.rider.classList.remove('flash');
+      clearFX();
+      seedStars();
+      seedComets();
+      showFeedback('FLIGHT START', 'good');
+      setupNextSequence();
+      updateHud();
+    }
+
+    function startGame() {
+      const snapshot = refreshControllerSetup();
+      if (!canStartWithController(snapshot)) {
+        notifyControllerRequired();
+        return;
+      }
+      resetState();
+      playBgm();
+      spawnBurst('forward', true, 24, 1.6);
+      spawnRibbon(0.95);
+    }
+
+    function computeRank() {
+      const power = state.score + state.peakAltitude * 6 + state.chains * 260 + state.bestCombo * 40;
+      if (power >= 9000 || state.peakAltitude >= 430) return 'S';
+      if (power >= 6600 || state.peakAltitude >= 320) return 'A';
+      if (power >= 4200 || state.peakAltitude >= 220) return 'B';
+      if (power >= 2500 || state.peakAltitude >= 130) return 'C';
+      return 'D';
+    }
+
+    function rankComment(rank) {
+      if (rank === 'S') return '光の帯を完全に支配しました。かなり高く、かなり派手です。';
+      if (rank === 'A') return 'リズムよく上昇できています。長い列も十分こなせています。';
+      if (rank === 'B') return '気持ちよく飛べています。あと少し速く決めると一段上がります。';
+      if (rank === 'C') return '基礎はできています。ミスを減らしてコンボを保つと伸びます。';
+      return 'まずは短い列から慣れる段階です。前進と左右の切り替えを意識すると安定します。';
+    }
+
+    function finishGame() {
+      state.mode = 'result';
+      pauseBgm();
+      const rank = computeRank();
+      refs.resultSummary.textContent = rankComment(rank);
+      refs.rankBadge.textContent = `RANK ${rank}`;
+      refs.resultScore.textContent = `${Math.round(state.score)}`;
+      refs.resultAltitude.textContent = `${Math.round(state.peakAltitude)}m`;
+      refs.resultChains.textContent = `${state.chains}`;
+      refs.resultCombo.textContent = `${state.bestCombo}`;
+      refs.resultOverlay.classList.remove('hidden');
+      updatePhaseBadge(`RESULT : RANK ${rank}`, rank === 'S' || rank === 'A' ? 'success' : '');
+      refs.currentTarget.textContent = '次の入力 : リザルト';
+      refs.targetBig.textContent = rank;
+      refs.targetName.textContent = `RANK ${rank}`;
+      refs.targetHint.textContent = '↑ / Space / Enter で再挑戦';
+      refs.chainInfo.textContent = `${state.chains} 列成功`;
+      refs.microcopy.textContent = rankComment(rank);
+      showFeedback(`RANK ${rank}`, rank === 'D' ? 'miss' : 'good');
+      spawnRibbon(1.4);
+      spawnBurst('forward', true, 34, 2.2);
+    }
+
+    function enterInterlude(reason, ms = 760) {
+      state.mode = 'interlude';
+      state.interludeReason = reason;
+      state.interludeTimer = ms;
+    }
+
+    function spawnParticles(x, y, count, hue = 200, power = 1, miss = false) {
+      for (let i = 0; i < count; i += 1) {
+        const angle = rand(0, Math.PI * 2);
+        const speed = rand(50, 180) * power * (miss ? 0.75 : 1);
+        fx.particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed + rand(-12, 12),
+          vy: Math.sin(angle) * speed - rand(18, 60),
+          life: rand(0.45, 1.0),
+          maxLife: 1,
+          size: rand(2, 5) * (miss ? 0.9 : 1.1),
+          hue,
+          miss
+        });
+      }
+    }
+
+    function spawnRing(x, y, hue = 200, power = 1) {
+      fx.rings.push({
+        x, y,
+        radius: 12,
+        life: 0.7 * power,
+        width: 3.5,
+        hue
+      });
+    }
+
+    function spawnRibbon(power = 1) {
+      fx.ribbons.push({
+        baseY: rand(0.22, 0.62),
+        amplitude: rand(16, 34) * power + state.style * 28,
+        phase: rand(0, Math.PI * 2),
+        speed: rand(0.35, 0.8),
+        hueA: rand(180, 220),
+        hueB: rand(250, 310),
+        life: rand(1.4, 2.6) * power
+      });
+    }
+
+    function spawnBurst(gestureId, success = true, count = 14, power = 1) {
+      const rect = refs.stage.getBoundingClientRect();
+      const baseX = rect.width * 0.5 + state.riderX * 0.9;
+      const baseY = rect.height * 0.64 - state.riderRise * 0.85;
+      const gesture = getGesture(gestureId) || getGesture('forward');
+      const hue = colorToHue(gesture.color);
+      spawnParticles(baseX, baseY, count, hue, power, !success);
+      spawnRing(baseX, baseY, hue, success ? 1.2 : 0.8);
+      if (success && gestureId === 'forward') spawnRibbon(0.7 + state.style);
+    }
+
+    function colorToHue(hex) {
+      const normalized = hex.replace('#', '');
+      const bigint = parseInt(normalized, 16);
+      const r = ((bigint >> 16) & 255) / 255;
+      const g = ((bigint >> 8) & 255) / 255;
+      const b = (bigint & 255) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const d = max - min;
+      let h = 0;
+      if (d === 0) h = 0;
+      else if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      return h;
+    }
+
+    function riderAction(gestureId, success = true) {
+      state.riderPose = gestureId;
+      refs.rider.dataset.pose = gestureId;
+      state.riderFlash = success ? 1 : 0.45;
+      refs.rider.classList.add('flash');
+      const bump = success ? 1 : 0.7;
+      if (gestureId === 'left') {
+        state.riderX -= 28 * bump;
+        state.riderTilt -= 14 * bump;
+      } else if (gestureId === 'right') {
+        state.riderX += 28 * bump;
+        state.riderTilt += 14 * bump;
+      } else if (gestureId === 'forward') {
+        state.riderRise += 30 * bump;
+      }
+      setTimeout(() => {
+        refs.rider.dataset.pose = 'idle';
+        refs.rider.classList.remove('flash');
+      }, 180);
+    }
+
+    function onCorrectGesture(gesture) {
+      state.index += 1;
+      state.combo += 1;
+      state.bestCombo = Math.max(state.bestCombo, state.combo);
+      state.score += 110 + state.combo * 8 + state.sequence.length * 10;
+      state.style = clamp(state.style + 0.05 + state.sequence.length * 0.006, 0, 1);
+      riderAction(gesture.id, true);
+      spawnBurst(gesture.id, true, 12 + Math.round(state.style * 8), 1.05);
+      renderSequence();
+      if (state.index >= state.sequence.length) {
+        const timeBonus = Math.round(state.chainRemaining / 90);
+        const chainBonus = state.sequence.length * 18 + timeBonus + Math.round(state.style * 22);
+        state.altitude += chainBonus;
+        state.peakAltitude = Math.max(state.peakAltitude, state.altitude);
+        state.score += chainBonus * 6;
+        state.chains += 1;
+        refs.chainInfo.textContent = `+${chainBonus}m 上昇`;
+        refs.microcopy.textContent = `${state.sequence.length} 手クリア。次はまたランダム列です。`;
+        updatePhaseBadge(`CHAIN CLEAR +${chainBonus}m`, 'success');
+        showFeedback(`CHAIN CLEAR +${chainBonus}m`, 'good');
+        state.style = clamp(state.style + 0.12, 0, 1);
+        spawnBurst('forward', true, 20 + state.sequence.length * 2, 1.5 + state.style);
+        spawnRibbon(1.2 + state.sequence.length * 0.04);
+        enterInterlude('clear', 850);
+        refs.currentTarget.textContent = '次の入力 : クリア演出';
+        refs.targetBig.textContent = '★';
+        refs.targetName.textContent = '列クリア';
+        refs.targetHint.textContent = '次の列を準備中';
+      } else {
+        updateCurrentTarget();
+        showFeedback(`${gesture.label} OK`, 'good');
+      }
+      updateHud();
+    }
+
+    function onMissGesture(actualId, expected) {
+      state.misses += 1;
+      state.combo = 0;
+      state.score = Math.max(0, state.score - 55);
+      state.altitude = Math.max(0, state.altitude - 5);
+      state.style = clamp(state.style - 0.08, 0, 1);
+      state.chainRemaining = Math.max(0, state.chainRemaining - 800);
+      riderAction(actualId, false);
+      spawnBurst(actualId, false, 9, 0.8);
+      markSequenceError();
+      updatePhaseBadge(`MISS : 欲しいのは ${expected.label}`, 'warning');
+      refs.microcopy.textContent = '順番はそのまま。落ち着いて現在の光っているカードを狙います。';
+      showFeedback(`MISS / ${expected.label}`, 'miss');
+      refs.stage.classList.remove('shake');
+      void refs.stage.offsetWidth;
+      refs.stage.classList.add('shake');
+      setTimeout(() => refs.stage.classList.remove('shake'), 280);
+      updateHud();
+    }
+
+    function handleGesture(gestureId) {
+      const gesture = getGesture(gestureId);
+      if (!gesture) return;
+
+      if (state.mode === 'intro' || state.mode === 'result') {
+        if (gestureId === 'forward') {
+          const snapshot = refreshControllerSetup();
+          if (canStartWithController(snapshot)) startGame();
+          else notifyControllerRequired();
+        }
+        return;
+      }
+      if (state.mode === 'controller-paused') return;
+      if (state.mode !== 'playing') return;
+
+      const expected = state.sequence[state.index];
+      if (!expected) return;
+      if (expected.id === gesture.id) onCorrectGesture(gesture);
+      else onMissGesture(gesture.id, expected);
+    }
+
+    function expireSequence() {
+      state.combo = 0;
+      state.misses += 1;
+      state.altitude = Math.max(0, state.altitude - 10);
+      state.style = clamp(state.style - 0.1, 0, 1);
+      updatePhaseBadge('TIME UP', 'warning');
+      refs.microcopy.textContent = '列タイマー切れ。すぐ次のランダム列に切り替わります。';
+      showFeedback('TIME UP', 'miss');
+      spawnBurst('forward', false, 14, 1);
+      enterInterlude('timeout', 820);
+      refs.currentTarget.textContent = '次の入力 : タイムアップ';
+      refs.targetBig.textContent = '…';
+      refs.targetName.textContent = '列終了';
+      refs.targetHint.textContent = '次の列を準備中';
+      updateHud();
+    }
+
+    function keyToGesture(key) {
+      return getKeyboardGestures().find((gesture) => gesture.keys.includes(key))?.id || null;
+    }
+
+    function handleKeyboardDown(event) {
+      if (APP_CONFIG.backKeys.includes(event.key)) {
+        event.preventDefault();
+        goHome();
+        return;
+      }
+      if (state.mode === 'intro') {
+        if ((event.key === 'ArrowLeft' || event.key === 'a' || event.key === 'A') && !event.repeat) {
+          event.preventDefault();
+          cyclePrepMode(-1);
+          return;
+        }
+        if ((event.key === 'ArrowRight' || event.key === 'd' || event.key === 'D') && !event.repeat) {
+          event.preventDefault();
+          cyclePrepMode(1);
+          return;
+        }
+        if (APP_CONFIG.confirmKeys.includes(event.key) || event.key === 'Enter') {
+          event.preventDefault();
+          const snapshot = refreshControllerSetup();
+          if (canStartWithController(snapshot)) startGame();
+          else notifyControllerRequired();
+          return;
+        }
+      }
+      const gestureId = keyToGesture(event.key);
+      if (!gestureId) return;
+      if (controllerState.inputMode === 'gamepad' && state.mode === 'playing') return;
+      event.preventDefault();
+      if (event.repeat) return;
+      handleGesture(gestureId);
+    }
+
+    function buildGestureButtons() {
+      const gestures = getGesturesForMode();
+      refs.gesturePad.innerHTML = gestures.map((gesture) => `
+        <button class="gesture-btn" type="button" data-gesture="${gesture.id}">
+          <div class="gicon" aria-hidden="true">${gesture.icon}</div>
+          <div class="gname">${gesture.label}</div>
+          <div class="gkeys">${gesture.short}</div>
+        </button>
+      `).join('');
+      refs.gesturePad.querySelectorAll('.gesture-btn').forEach((button) => {
+        const gestureId = button.dataset.gesture;
+        const activate = () => {
+          button.classList.add('active');
+          handleGesture(gestureId);
+          setTimeout(() => button.classList.remove('active'), 120);
+        };
+        button.addEventListener('click', activate);
+      });
+    }
+
+    function pollGamepad() {
+      const snapshot = getGamepadsSnapshot();
+      const pad = snapshot.find(Boolean) || null;
+      if (pad?.id) controllerState.selectedIndex = pad.index;
+      updateControllerUI(snapshot);
+
+      if (!pad) {
+        resetGamepadInputState();
+        updateControllerTester(null);
+        if (controllerState.inputMode === 'gamepad' && (state.mode === 'playing' || state.mode === 'interlude')) pauseForControllerDisconnect();
+        return;
+      }
+      if (state.mode === 'controller-paused') resumeAfterControllerReconnect();
+
+      const next = getPadGestureState(pad);
+
+      if (state.mode === 'intro') {
+        if (controllerState.prepNavCooldown > 0) controllerState.prepNavCooldown -= 1;
+        if (next.left && !inputState.gamepad.left && controllerState.prepNavCooldown <= 0) {
+          cyclePrepMode(-1);
+          controllerState.prepNavCooldown = 10;
+        }
+        if (next.right && !inputState.gamepad.right && controllerState.prepNavCooldown <= 0) {
+          cyclePrepMode(1);
+          controllerState.prepNavCooldown = 10;
+        }
+        const wantsStart = next.forward || next.start;
+        if (wantsStart && !controllerState.prepStartLatch) {
+          const snap = refreshControllerSetup();
+          if (canStartWithController(snap)) startGame();
+          else notifyControllerRequired();
+        }
+        controllerState.prepStartLatch = wantsStart;
+      } else {
+        controllerState.prepStartLatch = false;
+        if (controllerState.inputMode === 'gamepad') {
+          if (next.left && !inputState.gamepad.left) handleGesture('left');
+          if (next.right && !inputState.gamepad.right) handleGesture('right');
+          if (next.forward && !inputState.gamepad.forward) handleGesture('forward');
+        }
+        if (next.start && !inputState.gamepad.start) goHome();
+      }
+
+      Object.assign(inputState.gamepad, next);
+    }
+
+    function resizeCanvas() {
+      const rect = refs.stage.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      refs.canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      refs.canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      refs.canvas.style.width = `${rect.width}px`;
+      refs.canvas.style.height = `${rect.height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seedStars();
+      seedComets();
+    }
+
+    function clearFX() {
+      fx.stars.length = 0;
+      fx.particles.length = 0;
+      fx.rings.length = 0;
+      fx.ribbons.length = 0;
+      fx.comets.length = 0;
+    }
+
+    function seedStars() {
+      const rect = refs.stage.getBoundingClientRect();
+      const w = rect.width || 1200;
+      const h = rect.height || 600;
+      fx.stars = Array.from({ length: 88 }, () => ({
+        x: rand(0, w),
+        y: rand(0, h),
+        z: rand(0.4, 1.5),
+        alpha: rand(0.2, 0.9)
+      }));
+    }
+
+    function seedComets() {
+      const rect = refs.stage.getBoundingClientRect();
+      const w = rect.width || 1200;
+      const h = rect.height || 600;
+      fx.comets = Array.from({ length: 2 }, () => ({
+        x: rand(0, w),
+        y: rand(0, h * 0.4),
+        vx: rand(-28, -8),
+        vy: rand(10, 28),
+        life: rand(4, 9)
+      }));
+    }
+
+    function updateFX(dt) {
+      const rect = refs.stage.getBoundingClientRect();
+      const w = rect.width || 1200;
+      const h = rect.height || 600;
+      const scroll = 18 + state.style * 34 + (state.mode === 'playing' ? 26 : 10);
+
+      fx.stars.forEach((star) => {
+        star.y += scroll * star.z * dt;
+        if (star.y > h + 4) {
+          star.y = -4;
+          star.x = rand(0, w);
+          star.alpha = rand(0.2, 0.9);
+          star.z = rand(0.4, 1.5);
+        }
+      });
+
+      fx.comets.forEach((comet) => {
+        comet.x += comet.vx * dt;
+        comet.y += comet.vy * dt;
+        comet.life -= dt;
+        if (comet.x < -40 || comet.y > h * 0.7 || comet.life <= 0) {
+          comet.x = w + rand(30, 120);
+          comet.y = rand(0, h * 0.25);
+          comet.vx = rand(-40, -12);
+          comet.vy = rand(12, 28);
+          comet.life = rand(3, 8);
+        }
+      });
+
+      fx.particles = fx.particles.filter((p) => {
+        p.life -= dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += (p.miss ? 40 : 28) * dt;
+        p.vx *= 0.992;
+        p.vy *= 0.992;
+        return p.life > 0;
+      });
+
+      fx.rings = fx.rings.filter((ring) => {
+        ring.life -= dt;
+        ring.radius += 82 * dt;
+        ring.width *= 0.99;
+        return ring.life > 0;
+      });
+
+      fx.ribbons = fx.ribbons.filter((ribbon) => {
+        ribbon.life -= dt;
+        ribbon.phase += ribbon.speed * dt;
+        return ribbon.life > 0;
+      });
+    }
+
+    function drawFX() {
+      const rect = refs.stage.getBoundingClientRect();
+      const w = rect.width || 1200;
+      const h = rect.height || 600;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.save();
+      fx.stars.forEach((star) => {
+        ctx.fillStyle = `rgba(255,255,255,${star.alpha})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.z * 1.15, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+
+      fx.comets.forEach((comet) => {
+        const grd = ctx.createLinearGradient(comet.x, comet.y, comet.x + 80, comet.y - 38);
+        grd.addColorStop(0, 'rgba(255,255,255,.0)');
+        grd.addColorStop(.5, 'rgba(125,224,255,.3)');
+        grd.addColorStop(1, 'rgba(255,255,255,.78)');
+        ctx.strokeStyle = grd;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(comet.x, comet.y);
+        ctx.lineTo(comet.x + 84, comet.y - 38);
+        ctx.stroke();
+      });
+
+      fx.ribbons.forEach((ribbon) => {
+        const yBase = h * ribbon.baseY;
+        ctx.lineWidth = 8;
+        const grd = ctx.createLinearGradient(0, yBase, w, yBase + 20);
+        grd.addColorStop(0, `hsla(${ribbon.hueA}, 90%, 72%, 0)`);
+        grd.addColorStop(.22, `hsla(${ribbon.hueA}, 90%, 72%, .22)`);
+        grd.addColorStop(.52, `hsla(${ribbon.hueB}, 90%, 72%, .32)`);
+        grd.addColorStop(.78, `hsla(${(ribbon.hueA + 30) % 360}, 90%, 72%, .20)`);
+        grd.addColorStop(1, `hsla(${ribbon.hueB}, 90%, 72%, 0)`);
+        ctx.strokeStyle = grd;
+        ctx.beginPath();
+        for (let x = -20; x <= w + 20; x += 18) {
+          const y = yBase + Math.sin((x / 110) + ribbon.phase) * ribbon.amplitude + Math.cos((x / 170) + ribbon.phase * 1.7) * ribbon.amplitude * 0.25;
+          if (x <= -20) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+
+      fx.rings.forEach((ring) => {
+        ctx.strokeStyle = `hsla(${ring.hue}, 95%, 72%, ${clamp(ring.life / 0.7, 0, 1) * 0.65})`;
+        ctx.lineWidth = ring.width;
+        ctx.beginPath();
+        ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      fx.particles.forEach((p) => {
+        const alpha = clamp(p.life / p.maxLife, 0, 1);
+        ctx.fillStyle = `hsla(${p.hue}, 95%, ${p.miss ? '72' : '78'}%, ${alpha * (p.miss ? 0.44 : 0.68)})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
+    function updateRiderVisual(dt) {
+      state.driftPhase += dt * 2.4;
+      const idleFloat = Math.sin(state.driftPhase) * 6 + Math.cos(state.driftPhase * 0.65) * 4;
+      state.altitudeDisplay = lerp(state.altitudeDisplay, state.altitude, 1 - Math.exp(-dt * 6.8));
+      state.riderX *= Math.exp(-dt * 2.2);
+      state.riderRise *= Math.exp(-dt * 2.8);
+      state.riderTilt *= Math.exp(-dt * 3.1);
+      state.riderSpin *= Math.exp(-dt * 3.2);
+      state.feedbackTimer = Math.max(0, state.feedbackTimer - dt);
+      if (state.feedbackTimer <= 0) refs.feedback.className = 'feedback';
+
+      const verticalLift = clamp(state.altitudeDisplay * 0.16, 0, 70);
+      const translateX = state.riderX;
+      const translateY = -(verticalLift + idleFloat + state.riderRise);
+      const rotate = state.riderTilt + state.riderSpin * 0.18;
+      refs.rider.style.transform = `translate(calc(-50% + ${translateX}px), ${translateY}px) rotate(${rotate}deg)`;
+    }
+
+    function updateGame(dt) {
+      if (state.mode === 'playing') {
+        state.sessionRemaining -= dt * 1000;
+        state.chainRemaining -= dt * 1000;
+        if (state.sessionRemaining <= 0) {
+          state.sessionRemaining = 0;
+          finishGame();
+        } else if (state.chainRemaining <= 0) {
+          expireSequence();
+        }
+      } else if (state.mode === 'interlude') {
+        state.interludeTimer -= dt * 1000;
+        if (state.interludeTimer <= 0) {
+          if (state.sessionRemaining <= 0) finishGame();
+          else {
+            state.mode = 'playing';
+            setupNextSequence();
+          }
+        }
+      } else if (state.mode === 'controller-paused') {
+        // 接続待ち中はタイマー停止
+      }
+      state.peakAltitude = Math.max(state.peakAltitude, state.altitude);
+      updateHud();
+      updateRiderVisual(dt);
+      updateFX(dt);
+      drawFX();
+    }
+
+    function loop(now) {
+      if (!loop.last) loop.last = now;
+      const dt = clamp((now - loop.last) / 1000, 0, 0.05);
+      loop.last = now;
+      pollGamepad();
+      updateGame(dt);
+      requestAnimationFrame(loop);
+    }
+
+    function flashControls() {
+      const buttons = [...refs.gesturePad.querySelectorAll('.gesture-btn')];
+      let delay = 0;
+      getGesturesForMode().forEach((gesture) => {
+        const button = buttons.find((node) => node.dataset.gesture === gesture.id);
+        if (!button) return;
+        setTimeout(() => {
+          button.classList.add('active');
+          setTimeout(() => button.classList.remove('active'), 180);
+        }, delay);
+        delay += 150;
+      });
+    }
+
+    syncHomeButtonHref();
+    registerGameInLauncher();
+    loadSelectedController();
+    updateInputModeCopy();
+    buildGestureButtons();
+    resizeCanvas();
+    clearFX();
+    seedStars();
+    seedComets();
+    updateHud();
+    updateCurrentTarget();
+    updatePhaseBadge('開始前に入力方法を選んでください', 'warning');
+    refs.microcopy.textContent = '十字キー / キーボード または ゲームパッド を選んでからフライトを開始します。';
+    refreshControllerSetup();
+    updateSoundToggle();
+
+    refs.prepStartButton.addEventListener('click', startGame);
+    document.querySelectorAll('input[name="inputMode"]').forEach((radio) => {
+      radio.addEventListener('change', (event) => setInputMode(event.target.value));
+    });
+    if (refs.howToButton) refs.howToButton.addEventListener('click', flashControls);
+    refs.soundToggle.addEventListener('click', toggleBgm);
+    refs.retryButton.addEventListener('click', startGame);
+    refs.resultHomeButton.addEventListener('click', goHome);
+    refs.recheckControllerButton.addEventListener('click', refreshControllerSetup);
+    refs.returnToIntroButton.addEventListener('click', returnToIntroSetup);
+
+    window.addEventListener('keydown', handleKeyboardDown);
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('gamepadconnected', refreshControllerSetup);
+    window.addEventListener('gamepaddisconnected', refreshControllerSetup);
+    document.body.addEventListener('click', () => { navigator.getGamepads?.(); refreshControllerSetup(); }, { passive:true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        pauseBgm();
+        return;
+      }
+      if (!bgmState.failed && bgmState.enabled && (state.mode === 'playing' || state.mode === 'interlude')) {
+        playBgm();
+      }
+    });
+    window.addEventListener('beforeunload', pauseBgm);
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
