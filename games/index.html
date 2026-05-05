@@ -300,28 +300,28 @@
   </main>
 
   <script>
-const FALLBACK_GAMES = [
-  { file:'car.html', title:'レトロレーサー', tag:'Arcade', cover:'road', order:10 },
-  { file:'robot-wheelchair.html', title:'ロボット車椅子探索', tag:'Open World', cover:'generic', emoji:'🦼', coverColor:'#57b8a8', order:15 },
-  { file:'ice-cream.html', title:'アイスタワー', tag:'Balance', cover:'ice', order:20 },
-  { file:'rhythm.html', title:'リズム', tag:'Rhythm', cover:'rhythm', order:30 },
-  { file:'sushi.html', title:'寿司キャッチ', tag:'Action', cover:'sushi', order:40 },
-  { file:'taikan-groove-theater-sound-racer-start.html', title:'たいかんグルーヴ', tag:'Rhythm', cover:'rhythm', emoji:'🧘', order:240, coverColor:'#6e7cff' },
-  { file:'sky-ribbon-rise-racer-start.html', title:'スカイリボン・ライズ', tag:'Action', cover:'generic', emoji:'🌌', order:275, coverColor:'#6b53ff' },
-  { file:'cyber-breakout.html', title:'NEON BREAKOUT', tag:'Action', cover:'generic', emoji:'👾', coverColor:'#ff00ff', order:999 }
-];
-const IGNORE_FILES = new Set(['index.html', 'quize.html', 'game-template.html']);
-const GAME_REGISTRY_KEY = 'feeling-game-launcher:games:v1';
-const HANDLE_DB_NAME = 'feeling-game-launcher-db';
-const HANDLE_STORE_NAME = 'settings';
-const HANDLE_KEY = 'games-dir-handle';
-const DIRECTORY_PICKER_ID = 'feeling-game-games-folder';
-const WATCH_INTERVAL_MS = 1000;
-const MANIFEST_GLOBAL_KEY = '__FEELING_GAME_MANIFEST__';
-const MANIFEST_SCRIPT_PATH = './games-manifest.js';
-const MANIFEST_SCRIPT_ID = 'liveGamesManifestScript';
-const MANIFEST_NOTE = 'GitHub Pagesなどの静的ホスティング向けに games-manifest.js から一覧を読み込んでいます。';
-const LIVE_FEED_PATH = '../__gamecenter__/games.json';
+    const FALLBACK_GAMES = [
+      { file:'car.html', title:'レトロレーサー', tag:'Arcade', cover:'road', order:10 },
+      { file:'robot-wheelchair.html', title:'ロボット車椅子探索', tag:'Open World', cover:'generic', emoji:'🦼', coverColor:'#57b8a8', order:15 },
+      { file:'ice-cream.html', title:'アイスタワー', tag:'Balance', cover:'ice', order:20 },
+      { file:'rhythm.html', title:'リズム', tag:'Rhythm', cover:'rhythm', order:30 },
+      { file:'sushi.html', title:'寿司キャッチ', tag:'Action', cover:'sushi', order:40 },
+      { file:'taikan-groove-theater-sound-racer-start.html', title:'たいかんグルーヴ', tag:'Rhythm', cover:'rhythm', emoji:'🧘', order:240, coverColor:'#6e7cff' },
+      { file:'sky-ribbon-rise-racer-start.html', title:'スカイリボン・ライズ', tag:'Action', cover:'generic', emoji:'🌌', order:275, coverColor:'#6b53ff' },
+      { file:'cyber-breakout.html', title:'NEON BREAKOUT', tag:'Action', cover:'generic', emoji:'👾', coverColor:'#ff00ff', order:999 }
+    ];
+    const IGNORE_FILES = new Set(['index.html', 'quize.html', 'game-template.html']);
+    const GAME_REGISTRY_KEY = 'feeling-game-launcher:games:v1';
+    const HANDLE_DB_NAME = 'feeling-game-launcher-db';
+    const HANDLE_STORE_NAME = 'settings';
+    const HANDLE_KEY = 'games-dir-handle';
+    const DIRECTORY_PICKER_ID = 'feeling-game-games-folder';
+    const WATCH_INTERVAL_MS = 1000;
+    const MANIFEST_GLOBAL_KEY = '__FEELING_GAME_MANIFEST__';
+    const MANIFEST_SCRIPT_PATH = './games-manifest.js';
+    const MANIFEST_SCRIPT_ID = 'liveGamesManifestScript';
+    const MANIFEST_NOTE = 'GitHub Pagesなどの静的ホスティング向けに games-manifest.js から一覧を読み込んでいます。';
+    const LIVE_FEED_PATH = '../__gamecenter__/games.json';
 
 const COVER_PRESETS = {
   road: {

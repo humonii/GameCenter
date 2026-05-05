@@ -1,7 +1,7 @@
 window.__FEELING_GAME_MANIFEST__ = {
   source: 'static-manifest',
-  generatedAt: '2026-05-02T20:45:00+09:00',
-  version: '1',
+  generatedAt: '2026-05-03T00:00:00+09:00',
+  version: '2',
   games: [
     { file: 'car.html', title: 'レトロレーサー', tag: 'Arcade', cover: 'road', coverColor: '', emoji: '🚗', order: 10 },
     { file: 'robot-wheelchair.html', title: 'ロボット車椅子探索', tag: 'Open World', cover: 'generic', coverColor: '#57b8a8', emoji: '🦼', order: 15 },

@@ -535,39 +535,39 @@ RobotControl.prototype.createWorld = function () {
 };
 
 RobotControl.prototype.createLake = function (x, z, width, depth) {
-    var lake = this.addPrimitive('Lake', 'cylinder', this.materials.water, [x, .035, z], [width, .025, depth]);
+    var lake = this.addPrimitive('Lake', 'cylinder', this.materials.water, [x, .035, z], [width * 1.5, .025, depth * 1.5]);
     this.animated.push({ type: 'water', entity: lake, phase: Math.random() * 10 });
-    this.landmarks.push({ kind: 'lake', x: x, z: z, radius: Math.max(width, depth), width: width, depth: depth });
+    this.landmarks.push({ kind: 'lake', x: x, z: z, radius: Math.max(width, depth) * 1.5, width: width * 1.5, depth: depth * 1.5 });
 };
 
 RobotControl.prototype.createTree = function (x, z, scale) {
     var group = new pc.Entity('Tree');
     group.setLocalPosition(x, 0, z);
     group.setLocalEulerAngles(0, this.randomRange(0, 360), 0);
-    group.setLocalScale(scale, scale, scale);
+    group.setLocalScale(scale * 1.5, scale * 1.5, scale * 1.5);
     this.app.root.addChild(group);
     this.addPrimitive('Trunk', 'cylinder', this.materials.trunk, [0, .95, 0], [.16, 1.9, .16], null, group);
     this.addPrimitive('Leaf A', 'cone', this.materials.leaf, [0, 1.7, 0], [1.35, 1.35, 1.35], null, group);
     this.addPrimitive('Leaf B', 'cone', this.materials.leaf, [0, 2.2, 0], [1.05, 1.15, 1.05], [0, 28, 0], group);
     this.addPrimitive('Leaf C', 'cone', this.materials.leaf, [0, 2.62, 0], [.8, .95, .8], [0, -22, 0], group);
-    this.addCollider(x, z, 1.05 * scale);
-    this.landmarks.push({ kind: 'tree', x: x, z: z, radius: 13 * scale });
+    this.addCollider(x, z, 1.05 * scale * 1.5);
+    this.landmarks.push({ kind: 'tree', x: x, z: z, radius: 13 * scale * 1.5 });
 };
 
 RobotControl.prototype.createStone = function (x, z, scale) {
-    var stone = this.addPrimitive('Stone', 'box', this.materials.stone, [x, scale * .34, z], [scale * 1.2, scale * .7, scale], [this.randomRange(-8, 8), this.randomRange(0, 180), this.randomRange(-8, 8)]);
+    var stone = this.addPrimitive('Stone', 'box', this.materials.stone, [x, scale * 1.5 * .34, z], [scale * 1.5 * 1.2, scale * 1.5 * .7, scale * 1.5], [this.randomRange(-8, 8), this.randomRange(0, 180), this.randomRange(-8, 8)]);
     this.animated.push({ type: 'stone', entity: stone, phase: Math.random() * 10 });
-    this.addCollider(x, z, Math.max(1, scale * .95));
+    this.addCollider(x, z, Math.max(1, scale * 1.5 * .95));
 };
 
 RobotControl.prototype.createCrystal = function (x, z, height, material) {
     var group = new pc.Entity('Crystal');
     group.setLocalPosition(x, 0, z);
     this.app.root.addChild(group);
-    var crystal = this.addPrimitive('Crystal Body', 'cone', material, [0, height / 2, 0], [2.4, height, 2.4], [0, this.randomRange(0, 360), 0], group);
+    var crystal = this.addPrimitive('Crystal Body', 'cone', material, [0, height / 2, 0], [3.6, height * 1.5, 3.6], [0, this.randomRange(0, 360), 0], group);
     this.animated.push({ type: 'crystal', entity: crystal, phase: Math.random() * 10 });
-    this.addCollider(x, z, 2.05);
-    this.landmarks.push({ kind: 'crystal', x: x, z: z, radius: 22 });
+    this.addCollider(x, z, 2.05 * 1.5);
+    this.landmarks.push({ kind: 'crystal', x: x, z: z, radius: 22 * 1.5 });
 };
 
 RobotControl.prototype.createArch = function (x, z, rotation) {
@@ -575,29 +575,29 @@ RobotControl.prototype.createArch = function (x, z, rotation) {
     group.setLocalPosition(x, 0, z);
     group.setLocalEulerAngles(0, rotation * pc.math.RAD_TO_DEG, 0);
     this.app.root.addChild(group);
-    [-4.2, 4.2].forEach(function (offset) {
-        this.addPrimitive('Arch Post', 'box', this.materials.arch, [offset, 4.25, 0], [1.5, 8.5, 1.25], null, group);
-        this.addCollider(x + Math.cos(rotation) * offset, z - Math.sin(rotation) * offset, 1.25);
+    [-4.2 * 1.5, 4.2 * 1.5].forEach(function (offset) {
+        this.addPrimitive('Arch Post', 'box', this.materials.arch, [offset, 4.25 * 1.5, 0], [1.5 * 1.5, 8.5 * 1.5, 1.25 * 1.5], null, group);
+        this.addCollider(x + Math.cos(rotation) * offset, z - Math.sin(rotation) * offset, 1.25 * 1.5);
     }, this);
-    this.addPrimitive('Arch Top', 'box', this.materials.arch, [0, 8.65, 0], [10.2, 1.35, 1.45], null, group);
-    this.landmarks.push({ kind: 'arch', x: x, z: z, radius: 36 });
+    this.addPrimitive('Arch Top', 'box', this.materials.arch, [0, 8.65 * 1.5, 0], [10.2 * 1.5, 1.35 * 1.5, 1.45 * 1.5], null, group);
+    this.landmarks.push({ kind: 'arch', x: x, z: z, radius: 36 * 1.5 });
 };
 
 RobotControl.prototype.createLantern = function (x, z) {
     var group = new pc.Entity('Lantern');
     group.setLocalPosition(x, 0, z);
     this.app.root.addChild(group);
-    this.addPrimitive('Lantern Pole', 'cylinder', this.materials.metal, [0, 1.65, 0], [.08, 3.3, .08], null, group);
-    var bulb = this.addPrimitive('Lantern Bulb', 'sphere', this.materials.lamp, [0, 3.25, 0], [.52, .52, .52], null, group);
+    this.addPrimitive('Lantern Pole', 'cylinder', this.materials.metal, [0, 1.65 * 1.5, 0], [.08 * 1.5, 3.3 * 1.5, .08 * 1.5], null, group);
+    var bulb = this.addPrimitive('Lantern Bulb', 'sphere', this.materials.lamp, [0, 3.25 * 1.5, 0], [.52 * 1.5, .52 * 1.5, .52 * 1.5], null, group);
     this.animated.push({ type: 'lantern', entity: bulb, phase: Math.random() * 8 });
-    this.addCollider(x, z, .7);
+    this.addCollider(x, z, .7 * 1.5);
 };
 
 RobotControl.prototype.createFireflies = function () {
     for (var i = 0; i < 95; i++) {
         var x = this.randomRange(-this.HALF_WORLD, this.HALF_WORLD);
         var z = this.randomRange(-this.HALF_WORLD, this.HALF_WORLD);
-        var entity = this.addPrimitive('Firefly', 'sphere', this.materials.firefly, [x, this.randomRange(2.2, 14), z], [.12, .12, .12]);
+        var entity = this.addPrimitive('Firefly', 'sphere', this.materials.firefly, [x, this.randomRange(2.2, 14), z], [.18, .18, .18]);
         this.fireflies.push({ entity: entity, x: x, z: z, y: entity.getLocalPosition().y, phase: Math.random() * Math.PI * 2 });
     }
 };
@@ -646,8 +646,8 @@ RobotControl.prototype.createCoins = function () {
         if (Math.hypot(x + 120, z - 105) < 95) continue;
         if (this.touchesCollider(x, z, 4.2)) continue;
         if (this.coins.some(function (coin) { return Math.hypot(coin.x - x, coin.z - z) < minDistance; })) continue;
-        var entity = this.addPrimitive('Coin', 'cylinder', this.materials.coin, [x, 1.18, z], [.92, .08, .92], [0, 0, 90]);
-        var halo = this.addPrimitive('Coin Glow', 'sphere', this.materials.coinGlow, [0, 0, 0], [1.12, .08, 1.12], null, entity);
+        var entity = this.addPrimitive('Coin', 'cylinder', this.materials.coin, [x, 1.18, z], [1.6, .14, 1.6], [0, 0, 90]);
+        var halo = this.addPrimitive('Coin Glow', 'sphere', this.materials.coinGlow, [0, 0, 0], [1.95, .14, 1.95], null, entity);
         this.coins.push({ entity: entity, halo: halo, x: x, z: z, phase: this.coins.length * .47 });
     }
     this.setUiText('coins', '0/' + this.COIN_TOTAL);
@@ -674,6 +674,26 @@ RobotControl.prototype.initMap = function () {
 
 RobotControl.prototype.setupInput = function () {
     this.keyboard = this.app.keyboard;
+    this.gamepadAxes = { x: 0, y: 0 };
+};
+
+RobotControl.prototype.updateGamepadInput = function () {
+    this.gamepadAxes = { x: 0, y: 0 };
+    if (!navigator.getGamepads) return;
+    
+    var gamepads = navigator.getGamepads();
+    for (var i = 0; i < gamepads.length; i++) {
+        var pad = gamepads[i];
+        if (!pad || !pad.connected) continue;
+        // Left stick: axes[0] = X, axes[1] = Y
+        if (pad.axes.length >= 2) {
+            var x = pad.axes[0] || 0;
+            var y = pad.axes[1] || 0;
+            this.gamepadAxes.x = x;
+            this.gamepadAxes.y = y;
+        }
+        break; // Use first connected gamepad
+    }
 };
 
 RobotControl.prototype.update = function (dt) {
@@ -684,6 +704,7 @@ RobotControl.prototype.update = function (dt) {
         return;
     }
     if (!this.finished) {
+        this.updateGamepadInput();
         this.updatePlayer(dt);
         this.updateTimer(dt);
         this.revealMap();
@@ -697,18 +718,55 @@ RobotControl.prototype.update = function (dt) {
 };
 
 RobotControl.prototype.updatePlayer = function (dt) {
-    var turningLeft = this.touch.left || this.isKeyPressed(pc.KEY_A) || this.isKeyPressed(pc.KEY_LEFT);
-    var turningRight = this.touch.right || this.isKeyPressed(pc.KEY_D) || this.isKeyPressed(pc.KEY_RIGHT);
-    var forward = this.touch.forward || this.isKeyPressed(pc.KEY_W) || this.isKeyPressed(pc.KEY_UP);
+    var keyboardTurningLeft = this.isKeyPressed(pc.KEY_A) || this.isKeyPressed(pc.KEY_LEFT);
+    var keyboardTurningRight = this.isKeyPressed(pc.KEY_D) || this.isKeyPressed(pc.KEY_RIGHT);
+    var touchTurningLeft = this.touch.left;
+    var touchTurningRight = this.touch.right;
+    
+    var keyboardForward = this.isKeyPressed(pc.KEY_W) || this.isKeyPressed(pc.KEY_UP);
+    var touchForward = this.touch.forward;
+    var gamepadForward = this.gamepadAxes.y < 0;
+    var forward = keyboardForward || touchForward || gamepadForward;
 
-    if (turningLeft || turningRight || forward) this.activateAudio();
-    if (turningLeft) this.heading += 108 * dt;
-    if (turningRight) this.heading -= 108 * dt;
+    if (keyboardTurningLeft || keyboardTurningRight || touchTurningLeft || touchTurningRight || forward) this.activateAudio();
+    
+    // 回転制御：キーボード/タッチはデジタル、ジョイスティックはアナログ
+    if (keyboardTurningLeft || touchTurningLeft) {
+        // キーボードとタッチは固定の回転速度（108 degrees/sec）
+        this.heading += 108 * dt;
+    } else if (keyboardTurningRight || touchTurningRight) {
+        this.heading -= 108 * dt;
+    } else {
+        // ジョイスティックの場合は入力強度に基づいて回転
+        // X軸: -1.0～0 を左回転、0～1.0 を右回転に正規化
+        if (this.gamepadAxes.x < 0) {
+            var leftStrength = Math.max(0, Math.min(1, -this.gamepadAxes.x));
+            var leftRotationSpeed = leftStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
+            this.heading += leftRotationSpeed * dt;
+        } else if (this.gamepadAxes.x > 0) {
+            var rightStrength = Math.max(0, Math.min(1, this.gamepadAxes.x));
+            var rightRotationSpeed = rightStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
+            this.heading -= rightRotationSpeed * dt;
+        }
+    }
+    
     if (this.heading > 360 || this.heading < -360) this.heading %= 360;
     this.player.setLocalEulerAngles(0, this.heading, 0);
 
-    if (forward) this.speed = this.clamp(this.speed + 18 * dt, 0, 18.5);
-    else this.speed *= Math.pow(.09, dt);
+    // 速度制御：キーボード/タッチはデジタル、ジョイスティックはアナログ
+    if (keyboardForward || touchForward) {
+        // キーボードとタッチは最大加速度（18 units/sec²）
+        this.speed = this.clamp(this.speed + 18 * dt, 0, 18.5);
+    } else if (gamepadForward) {
+        // ジョイスティックの入力値に基づいて繊細に加速
+        // Y軸: -1.0～0 を 0～1 に正規化
+        var gamepadStrength = Math.max(0, Math.min(1, -this.gamepadAxes.y));
+        var accelerationRate = gamepadStrength * 28; // 最大28 units/sec²（キーボードより若干速い）
+        this.speed = this.clamp(this.speed + accelerationRate * dt, 0, 18.5);
+    } else {
+        // 入力なし：減速
+        this.speed *= Math.pow(.09, dt);
+    }
 
     var speedBeforeCollision = this.speed;
     var headingRad = this.heading * pc.math.DEG_TO_RAD;
