@@ -724,11 +724,15 @@ RobotControl.prototype.updatePlayer = function (dt) {
     var touchTurningRight = this.touch.right;
     
     var keyboardForward = this.isKeyPressed(pc.KEY_W) || this.isKeyPressed(pc.KEY_UP);
+    var keyboardBackward = this.isKeyPressed(pc.KEY_S) || this.isKeyPressed(pc.KEY_DOWN);
     var touchForward = this.touch.forward;
-    var gamepadForward = this.gamepadAxes.y < 0;
+    var touchBackward = this.touch.backward;
+    var gamepadForward = this.gamepadAxes.y < -0.35;
+    var gamepadBackward = this.gamepadAxes.y > 0.35;
     var forward = keyboardForward || touchForward || gamepadForward;
+    var backward = keyboardBackward || touchBackward || gamepadBackward;
 
-    if (keyboardTurningLeft || keyboardTurningRight || touchTurningLeft || touchTurningRight || forward) this.activateAudio();
+    if (keyboardTurningLeft || keyboardTurningRight || touchTurningLeft || touchTurningRight || forward || backward) this.activateAudio();
     
     // 回転制御：キーボード/タッチはデジタル、ジョイスティックはアナログ
     if (keyboardTurningLeft || touchTurningLeft) {
@@ -739,11 +743,11 @@ RobotControl.prototype.updatePlayer = function (dt) {
     } else {
         // ジョイスティックの場合は入力強度に基づいて回転
         // X軸: -1.0～0 を左回転、0～1.0 を右回転に正規化
-        if (this.gamepadAxes.x < 0) {
+        if (this.gamepadAxes.x < -0.35) {
             var leftStrength = Math.max(0, Math.min(1, -this.gamepadAxes.x));
             var leftRotationSpeed = leftStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
             this.heading += leftRotationSpeed * dt;
-        } else if (this.gamepadAxes.x > 0) {
+        } else if (this.gamepadAxes.x > 0.35) {
             var rightStrength = Math.max(0, Math.min(1, this.gamepadAxes.x));
             var rightRotationSpeed = rightStrength * 162; // 最大162 degrees/sec（キーボードより若干速い）
             this.heading -= rightRotationSpeed * dt;
@@ -754,15 +758,17 @@ RobotControl.prototype.updatePlayer = function (dt) {
     this.player.setLocalEulerAngles(0, this.heading, 0);
 
     // 速度制御：キーボード/タッチはデジタル、ジョイスティックはアナログ
-    if (keyboardForward || touchForward) {
+    if (backward) {
+        // 後ろ入力：ニュートラルで即座に停止
+        this.speed = 0;
+    } else if (keyboardForward || touchForward) {
         // キーボードとタッチは最大加速度（18 units/sec²）
         this.speed = this.clamp(this.speed + 18 * dt, 0, 18.5);
     } else if (gamepadForward) {
-        // ジョイスティックの入力値に基づいて繊細に加速
-        // Y軸: -1.0～0 を 0～1 に正規化
+        // ゲームパッド入力値と速度をリニアに対応
+        // Y軸: -1.0～0 を 0～1 に正規化して、即座に速度を設定
         var gamepadStrength = Math.max(0, Math.min(1, -this.gamepadAxes.y));
-        var accelerationRate = gamepadStrength * 28; // 最大28 units/sec²（キーボードより若干速い）
-        this.speed = this.clamp(this.speed + accelerationRate * dt, 0, 18.5);
+        this.speed = gamepadStrength * 18.5;  // 入力値に比例した速度を即座に設定
     } else {
         // 入力なし：減速
         this.speed *= Math.pow(.09, dt);
